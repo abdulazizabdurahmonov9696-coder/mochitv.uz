@@ -276,28 +276,36 @@ export default function AnimeDetail() {
     }
   };
 
-  const getVideoToken = async (rawUrl) => {
-    try {
-      if (!rawUrl) return null;
+const getVideoToken = async (rawUrl) => {
+  try {
+    if (!rawUrl) return null;
 
-      if (tokenCacheRef.current.has(rawUrl)) {
-        return tokenCacheRef.current.get(rawUrl);
-      }
-
-      const response = await fetch(`/api/auth-token?url=${encodeURIComponent(rawUrl)}`);
-      const data = await response.json();
-
-      if (data?.token) {
-        const stream = `/api/stream?token=${data.token}`;
-        tokenCacheRef.current.set(rawUrl, stream);
-        return stream;
-      }
-      return null;
-    } catch (error) {
-      console.error('Token error:', error);
-      return null;
+    // ✅ Cache tekshirish — muddati o'tganmi?
+    const cached = tokenCacheRef.current.get(rawUrl);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.streamUrl;
     }
-  };
+
+    const response = await fetch(`/api/auth-token?url=${encodeURIComponent(rawUrl)}`);
+    const data = await response.json();
+
+    if (data?.token) {
+      const streamUrl = `/api/stream?token=${data.token}`;
+
+      // ✅ 2 soat 55 daqiqa (5 daqiqa zapas)
+      tokenCacheRef.current.set(rawUrl, {
+        streamUrl,
+        expiresAt: Date.now() + 175 * 60 * 1000,
+      });
+
+      return streamUrl;
+    }
+    return null;
+  } catch (error) {
+    console.error('Token error:', error);
+    return null;
+  }
+};
 
   const prefetchNextEpisodes = async (currentEpNum, list) => {
     try {
