@@ -595,7 +595,7 @@ function AuthModal({ mode, onClose, onLogin, onRegister, onTelegramOpen, loading
           onClick={onTelegramOpen}
           disabled={loading}
           style={{
-            background: 'rgba(42, 171, 238, 0.15)',
+            background: 'none',
             border: '1px solid rgba(42, 171, 238, 0.5)',
             color: '#9fdcff'
           }}
@@ -2019,15 +2019,13 @@ const goToAnime = (anime) => {
           width: 40px; height: 40px;
           border-radius: 50%;
           background: rgba(59, 130, 246, 0.2);
-          border: 1px solid rgba(59, 130, 246, 0.5);
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           transition: all 0.3s;
-          color: #3b82f6;
+          color: #eab308;
         }
-        .social-icon:hover { background: rgba(59, 130, 246, 0.3); transform: translateY(-2px); }
         .footer-bottom { text-align: center; padding-top: 20px; color: rgba(255, 255, 255, 0.7); font-size: 14px; margin-bottom: 40px; }
 
         .auth-modal-overlay {
@@ -2622,6 +2620,7 @@ const goToAnime = (anime) => {
           </div>
         </div>
       </footer>
-    </>
+   <div style={{ marginBottom: "20px" }}></div>
+  </>
   );
 }
