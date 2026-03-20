@@ -3,22 +3,10 @@ import Head from 'next/head';
 import { Search, Download, Share2, X, Check, Image as ImageIcon } from 'lucide-react';
 import MobileNavbar from '../components/MobileNavbar';
 
-// Rasm o'lchamlarini oldindan belgilash orqali sakrashni (layout shift) yo'q qilamiz
-const getDeterministicHeight = (id) => {
-  const heights =[240, 320, 280, 380, 260, 340, 400];
-  const stringId = String(id || '1');
-  let hash = 0;
-  for (let i = 0; i < stringId.length; i++) {
-    hash = stringId.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return heights[Math.abs(hash) % heights.length];
-};
-
 function shuffleArray(arr) {
-  const a = [...arr];
+  const a =[...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]];
   }
   return a;
 }
@@ -42,16 +30,16 @@ function buildColumns(items, colCount) {
 const LOGO_URL = '/assets/lego.png';
 
 export default function Wallpapers() {
-  const [allWallpapers, setAllWallpapers]           = useState([]);
-  const[filteredWallpapers, setFilteredWallpapers] = useState([]);
+  const[allWallpapers, setAllWallpapers]           = useState([]);
+  const [filteredWallpapers, setFilteredWallpapers] = useState([]);
   const [wallpapers, setWallpapers]                 = useState([]);
-  const [colCount, setColCount]                     = useState(2);
+  const[colCount, setColCount]                     = useState(2);
   const [loading, setLoading]                       = useState(true);
   const [searchQuery, setSearchQuery]               = useState('');
   const[debouncedQuery, setDebouncedQuery]         = useState('');
   const [offset, setOffset]                         = useState(0);
   const [hasMore, setHasMore]                       = useState(true);
-  const[selectedImage, setSelectedImage]           = useState(null);
+  const [selectedImage, setSelectedImage]           = useState(null);
   const [toast, setToast]                           = useState({ show: false, message: '', type: 'success' });
   const [currentUser, setCurrentUser]               = useState(null);
   const [downloading, setDownloading]               = useState(false);
@@ -118,7 +106,7 @@ export default function Wallpapers() {
     setWallpapers(filtered.slice(0, 30));
     setOffset(30);
     setHasMore(filtered.length > 30);
-  },[debouncedQuery, allWallpapers]);
+  }, [debouncedQuery, allWallpapers]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -127,7 +115,7 @@ export default function Wallpapers() {
       const target = allWallpapers.find(w => w.id.toString() === sharedId);
       if (target) openModal(target, false);
     }
-  },[allWallpapers]);
+  }, [allWallpapers]);
 
   const loadMore = useCallback(() => {
     if (!hasMore || loading) return;
@@ -135,9 +123,9 @@ export default function Wallpapers() {
     setWallpapers(prev => [...prev, ...nextBatch]);
     setOffset(prev => prev + 30);
     if (offset + 30 >= filteredWallpapers.length) setHasMore(false);
-  }, [hasMore, offset, filteredWallpapers, loading]);
+  },[hasMore, offset, filteredWallpapers, loading]);
 
-  // Infinite Scroll uchun ishonchli observer (ohirgi rasmga emas, maxsus trigger'ga ulanadi)
+  // Infinite Scroll ulovchisi
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -145,7 +133,7 @@ export default function Wallpapers() {
           loadMore();
         }
       },
-      { rootMargin: '600px' } // Sal oldinroq yuklashni boshlaydi
+      { rootMargin: '800px' } // Rasmlar ko'rinishidan biroz oldinroq yuklashni boshlaydi
     );
 
     if (observerTarget.current) {
@@ -153,7 +141,7 @@ export default function Wallpapers() {
     }
 
     return () => observer.disconnect();
-  }, [loadMore, hasMore]);
+  },[loadMore, hasMore]);
 
   const openModal = (img, updateUrl = true) => {
     setSelectedImage(img);
@@ -246,7 +234,6 @@ export default function Wallpapers() {
           width: 100%; min-height: 100%;
           background: #090b10; color: #fff;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-          /* Scroll muammosini tuzatish */
           overflow-x: hidden;
           overscroll-behavior-y: auto; 
         }
@@ -329,17 +316,24 @@ export default function Wallpapers() {
         @media (max-width: 900px) { .masonry-col { gap: 10px; } }
         @media (max-width: 600px) { .masonry-col { gap: 8px; } }
 
-        /* Sakrashlarni oldini olish va moslashtirish */
+        /* Rasm natural shaklda qolishi uchun optimizatsiya qilingan CSS */
         .masonry-item {
-          position: relative; border-radius: 16px; overflow: hidden;
-          cursor: pointer; background: #0f1219;
-          transform: translateZ(0); /* Hardware acceleration */
-          transition: transform 0.3s, box-shadow 0.3s;
+          position: relative; 
+          border-radius: 16px; 
+          overflow: hidden;
+          cursor: pointer; 
+          background: #0f1219;
+          /* Telefonda GPU orqali tez ishlashi uchun */
+          transform: translateZ(0); 
+          will-change: transform;
           box-shadow: 0 4px 16px rgba(0,0,0,0.35);
           width: 100%;
+          transition: transform 0.3s, box-shadow 0.3s;
+          /* Rasm o'lchamini topgunicha nolga tushib ketmasligi uchun min balandlik */
+          min-height: 150px; 
         }
         
-        /* Telefonda qotmasligi uchun hoverni faqat desktopga yoqamiz */
+        /* Telefonda qotmasligi uchun hoverni faqat kompyuterlarga yoqamiz */
         @media (hover: hover) and (pointer: fine) {
           .masonry-item:hover {
             transform: translateY(-3px) scale(1.01);
@@ -349,15 +343,17 @@ export default function Wallpapers() {
           .masonry-item:hover .img-overlay { opacity: 1; }
         }
 
-        @media (max-width: 600px) { .masonry-item { border-radius: 12px; } }
+        @media (max-width: 600px) { .masonry-item { border-radius: 12px; min-height: 120px; } }
 
+        /* Rasmni o'z holicha (natural width/height) ko'rsatuvchi qism */
         .wall-img {
-          width: 100%; height: 100%;
-          object-fit: cover; /* Deterministic bo'lishi uchun */
-          display: block; border-radius: 16px;
+          width: 100%; 
+          height: auto; /* ASL PROPORSION SAQLANADI */
+          display: block; 
+          border-radius: 16px;
           opacity: 0;
           transition: opacity 0.45s ease, transform 0.4s ease;
-          position: absolute; top: 0; left: 0;
+          will-change: opacity, transform;
         }
         .wall-img.loaded { opacity: 1; }
         @media (max-width: 600px) { .wall-img { border-radius: 12px; } }
@@ -580,12 +576,12 @@ export default function Wallpapers() {
               {columns.map((col, ci) => (
                 <div key={ci} className="masonry-col">
                   {col.map((item) => {
-                    const dynamicHeight = getDeterministicHeight(item.id);
                     return (
                       <div
                         key={item.id}
                         className="masonry-item"
-                        style={{ height: `${dynamicHeight}px` }} // O'rnini darhol topadi!
+                        /* Agar backenddan width/height ma'lumoti kelsa sakramasligi uchun silliq aspect ratio, bo'lmasa auto ishlaydi */
+                        style={{ aspectRatio: item.width && item.height ? `${item.width} / ${item.height}` : 'auto' }}
                         onClick={() => openModal(item)}
                       >
                         <img
@@ -625,7 +621,7 @@ export default function Wallpapers() {
               ))}
             </div>
 
-            {/* Pastki Trigger elementi: Scrollni mukammal ishlashi uchun maxsus qism */}
+            {/* Pastki Trigger elementi: Infinite Scroll mukammal ishlashi uchun maxsus qism */}
             <div ref={observerTarget} style={{ height: '20px', width: '100%' }} />
           </>
         )}
