@@ -1,4 +1,5 @@
 import { Home, Search, User, Sparkles } from 'lucide-react';
+import { FaBahai } from "react-icons/fa";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
@@ -136,7 +137,7 @@ export default function MobileNavbar({
           className={`nav-item ${activeTab === 'wall' ? 'active' : ''}`}
           onClick={() => handleNavigation('/wall')}
         >
-          <Sparkles size={22} className="nav-icon" strokeWidth={activeTab === 'wall' ? 2.5 : 2} />
+          <FaBahai size={22} className="nav-icon" strokeWidth={activeTab === 'wall' ? 2.5 : 2} />
           <span className="nav-label">Lavhalar</span>
         </div>
 
