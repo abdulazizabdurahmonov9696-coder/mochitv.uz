@@ -122,7 +122,7 @@ export default function Wallpapers() {
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore) loadMore();
-    }, { rootMargin: '400px' });
+    }, { rootMargin: '800px' });
     if (node) observer.current.observe(node);
   }, [loading, hasMore, loadMore]);
 
@@ -200,6 +200,9 @@ export default function Wallpapers() {
 
   const columns = buildColumns(wallpapers, colCount);
   const totalItems = wallpapers.length;
+  // Oxirgi ustun, oxirgi element — shu yerda scroll trigger
+  const lastColIdx = columns.length - 1;
+  const lastRowIdx = columns[lastColIdx] ? columns[lastColIdx].length - 1 : -1;
 
   return (
     <>
@@ -247,21 +250,18 @@ export default function Wallpapers() {
         /* ─── header ─── */
         .w-header {
           position: sticky; top: 0; z-index: 100;
-          padding: 14px 20px;
-          display: flex; align-items: center; gap: 14px;
+          padding: 11px 20px;
+          display: flex; align-items: center; justify-content: center;
           background: rgba(9,11,16,0.85);
           backdrop-filter: blur(16px);
           border-bottom: 1px solid rgba(255,255,255,0.08);
         }
-        .w-logo {
-          height: 36px; width: auto; cursor: pointer; flex-shrink: 0;
-        }
         .w-search-bar {
-          flex: 1;
-          display: flex; align-items: center; gap: 10px;
+          width: 100%; max-width: 400px;
+          display: flex; align-items: center; gap: 8px;
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 12px; padding: 0 14px;
+          border-radius: 10px; padding: 0 12px;
           transition: border-color 0.25s, box-shadow 0.25s;
         }
         .w-search-bar:focus-within {
@@ -271,13 +271,13 @@ export default function Wallpapers() {
         .w-search-icon { color: rgba(255,255,255,0.3); flex-shrink: 0; }
         .w-search-input {
           flex: 1; background: transparent; border: none;
-          color: #fff; font-size: 16px; padding: 13px 0; outline: none;
+          color: #fff; font-size: 13px; padding: 9px 0; outline: none;
         }
         .w-search-input::placeholder { color: rgba(255,255,255,0.25); }
         .w-clear-btn {
           background: rgba(255,255,255,0.08); border: none;
           color: rgba(255,255,255,0.5);
-          width: 26px; height: 26px; border-radius: 50%;
+          width: 20px; height: 20px; border-radius: 50%;
           cursor: pointer; display: flex; align-items: center; justify-content: center;
           transition: all 0.2s; flex-shrink: 0;
         }
@@ -508,25 +508,19 @@ export default function Wallpapers() {
 
         {/* ─── Header ─── */}
         <header className="w-header">
-          <img
-            src={LOGO_URL}
-            alt="MochiTV"
-            className="w-logo"
-            onClick={() => window.location.href = '/'}
-          />
           <div className="w-search-bar">
-            <Search size={18} className="w-search-icon" />
+            <Search size={16} className="w-search-icon" />
             <input
               type="text"
               className="w-search-input"
-              placeholder="Qidirish... (naruto, 4k, ...)"
+              placeholder="Wallpaper qidiring..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               autoComplete="off"
             />
             {searchQuery && (
               <button className="w-clear-btn" onClick={() => setSearchQuery('')}>
-                <X size={13} />
+                <X size={12} />
               </button>
             )}
           </div>
@@ -575,8 +569,7 @@ export default function Wallpapers() {
             {columns.map((col, ci) => (
               <div key={ci} className="masonry-col">
                 {col.map((item, rowIdx) => {
-                  const globalIdx = rowIdx * colCount + ci;
-                  const isLast    = globalIdx === totalItems - 1;
+                  const isLast = ci === lastColIdx && rowIdx === lastRowIdx;
                   return (
                     <div
                       key={item.id}
