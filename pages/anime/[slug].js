@@ -24,11 +24,10 @@ const supabase = getSupabase();
 
 export default function AnimeDetail() {
   const router = useRouter();
-  // ✅ slug = anime title (URL-encoded), id esa URL da ko'rinmaydi
   const { slug } = router.query;
 
   const [anime, setAnime] = useState(null);
-  const [animeId, setAnimeId] = useState(null); // ✅ ichki ishlatish uchun real DB id
+  const [animeId, setAnimeId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState([]);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -44,11 +43,9 @@ export default function AnimeDetail() {
   const [copied, setCopied] = useState(false);
   const [randomAnimes, setRandomAnimes] = useState([]);
 
-  // Player uchun Reflar
   const dpRef = useRef(null);
   const videoContainerRef = useRef(null);
 
-  // 🔥 Performance/SYNC uchun qo'shimcha reflar
   const tokenCacheRef = useRef(new Map());
   const switchingRef = useRef(false);
   const activeVideoRef = useRef('');
@@ -57,13 +54,11 @@ export default function AnimeDetail() {
   useEffect(() => {
     checkCurrentUser();
     if (slug) {
-      // ✅ Avval anime ni title bo'yicha yuklab, id ni olamiz, keyin qolganlarni chaqiramiz
       loadAnimeBySlug(slug);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  // animeId tayyor bo'lgandan keyin qolgan ma'lumotlarni yuklaymiz
   useEffect(() => {
     if (animeId) {
       loadComments(animeId);
@@ -74,7 +69,6 @@ export default function AnimeDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animeId]);
 
-  // currentUser YOKI animeId ozgarganda favorites qayta yuklanadi (race condition fix)
   useEffect(() => {
     if (currentUser && animeId) {
       loadUserFavorites(currentUser.id, animeId);
@@ -82,7 +76,6 @@ export default function AnimeDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser, animeId]);
 
-  // Player initsializatsiyasi
   useEffect(() => {
     if (videoUrl && anime && typeof window !== 'undefined') {
       const timer = setTimeout(() => {
@@ -97,7 +90,6 @@ export default function AnimeDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoUrl, anime]);
 
-  // ✅ Mobile fullscreen: landscape lock (imkon bo'lsa)
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
@@ -269,7 +261,6 @@ export default function AnimeDetail() {
       if (user) {
         const userData = JSON.parse(user);
         setCurrentUser(userData);
-        // animeId hali tayyor bo'lmagan bo'lishi mumkin, shuning uchun animeId useEffect da chaqiriladi
       }
     } catch (error) {
       console.error('User check error:', error);
@@ -280,25 +271,22 @@ const getVideoToken = async (rawUrl) => {
   try {
     if (!rawUrl) return null;
 
-    // ✅ Cache tekshirish — muddati o'tganmi?
+    // Cache tekshirish
     const cached = tokenCacheRef.current.get(rawUrl);
     if (cached && cached.expiresAt > Date.now()) {
-      return cached.streamUrl;
+      return cached.workerUrl;
     }
 
-    const response = await fetch(`/api/auth-token?url=${encodeURIComponent(rawUrl)}`);
+    // ✅ To'liq original URL ni yuboramiz — API o'zi hal qiladi
+    const response = await fetch(`/api/get-video?file=${encodeURIComponent(rawUrl)}`);
     const data = await response.json();
 
-    if (data?.token) {
-      const streamUrl = `/api/stream?token=${data.token}`;
-
-      // ✅ 2 soat 55 daqiqa (5 daqiqa zapas)
+    if (data?.url) {
       tokenCacheRef.current.set(rawUrl, {
-        streamUrl,
+        workerUrl: data.url,
         expiresAt: Date.now() + 175 * 60 * 1000,
       });
-
-      return streamUrl;
+      return data.url;
     }
     return null;
   } catch (error) {
@@ -359,39 +347,30 @@ const getVideoToken = async (rawUrl) => {
     }
   };
 
-  // ✅ Asosiy o'zgarish: id emas, title/slug bo'yicha anime yuklanadi
   const loadAnimeBySlug = async (rawSlug) => {
     setLoading(true);
     try {
       const rawDecoded = decodeURIComponent(rawSlug).trim();
 
-      // 1-urinish: bo'shliq bilan (eski: "arra-odam---reze" → "arra odam   reze")
       const titleV1 = rawDecoded.replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
-
-      // 2-urinish: fuzzy ilike uchun - har qanday tire ketma-ketligini % ga aylantir
-      // "arra-odam---reze-hikoyasi" → "arra%odam%reze%hikoyasi" → ilike bilan topiladi
       const fuzzyTitle = '%' + rawDecoded.replace(/-+/g, '%') + '%';
 
       let data = null;
       let error = null;
 
-      // urinish 1: aniq bo'shliq bilan
       const res1 = await supabase.from('anime_cards').select('*').eq('title', titleV1).maybeSingle();
       data = res1.data; error = res1.error;
 
-      // urinish 2: case-insensitive aniq
       if (!data) {
         const res2 = await supabase.from('anime_cards').select('*').ilike('title', titleV1).maybeSingle();
         data = res2.data; error = res2.error;
       }
 
-      // urinish 3: fuzzy - tireli har qanday format uchun (eski URL lar ham ishlaydi)
       if (!data) {
         const res3 = await supabase.from('anime_cards').select('*').ilike('title', fuzzyTitle).maybeSingle();
         data = res3.data; error = res3.error;
       }
 
-      // urinish 4: URL da ?id= query param mavjud bo'lsa (eski linklar uchun)
       if (!data && typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         const fallbackId = params.get('id');
@@ -434,9 +413,9 @@ const getVideoToken = async (rawUrl) => {
 
         const firstVideoUrl = data[0].video_url;
         if (firstVideoUrl) {
-          const streamUrl = await getVideoToken(firstVideoUrl);
-          if (streamUrl) {
-            setVideoUrl(streamUrl);
+          const workerUrl = await getVideoToken(firstVideoUrl);
+          if (workerUrl) {
+            setVideoUrl(workerUrl);
             prefetchNextEpisodes(data[0].episode_number, data);
           }
         }
@@ -479,9 +458,9 @@ const getVideoToken = async (rawUrl) => {
       setVideoUrl('');
 
       if (episode.video_url) {
-        const streamUrl = await getVideoToken(episode.video_url);
-        if (streamUrl) {
-          setVideoUrl(streamUrl);
+        const workerUrl = await getVideoToken(episode.video_url);
+        if (workerUrl) {
+          setVideoUrl(workerUrl);
           prefetchNextEpisodes(episode.episode_number, episodes);
         }
       }
@@ -572,9 +551,6 @@ const getVideoToken = async (rawUrl) => {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  // ✅ Navigatsiya: faqat title (slug) ishlatiladi, id yo'q
-  // title -> slug: bo'shliqlarni chiziqqa almashtiramiz
-  // title -> slug: bo'shliqlarni chiziqqa almashtiramiz
   const titleToSlug = (title) => title.trim().replace(/\s+/g, '-');
 
   const navigateToAnime = (targetAnime) => {
@@ -634,7 +610,6 @@ const getVideoToken = async (rawUrl) => {
         <meta name="author" content="Anime Uzbek" />
         <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
 
-        {/* DPlayer CDN havolalari */}
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css" />
         <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/hls.js/dist/hls.min.js"></script>
@@ -1118,7 +1093,6 @@ const getVideoToken = async (rawUrl) => {
                 <div
                   key={randomAnime.id}
                   className="anime-card"
-                  // ✅ Faqat slug (title), id yo'q
                   onClick={() => navigateToAnime(randomAnime)}
                 >
                   <img src={randomAnime.image_url} alt={randomAnime.title} />
