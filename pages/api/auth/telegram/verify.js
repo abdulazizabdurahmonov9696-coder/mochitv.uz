@@ -67,27 +67,30 @@ export default async function handler(req, res) {
 
     const fullName = `${tg.first_name || ''} ${tg.last_name || ''}`.trim() || finalUsername;
 
-    const { data: newUser, error: insertError } = await supabase
-      .from('users')
-      .insert([{
-        username: finalUsername,
-        password: `telegram_${tg.id}`,
-        provider: 'telegram',
-        telegram_id: String(tg.id),
-        telegram_username: tg.username || null,
-        full_name: fullName,
-        avatar_url: tg.photo_url || null,
-      }])
-      .select()
-      .single();
+const { data: newUser, error: insertError } = await supabase
+  .from('users')
+  .insert([{
+    username: finalUsername,
+    password: `telegram_${tg.id}`,
+    provider: 'telegram',
+    telegram_id: String(tg.id),
+    telegram_username: tg.username || null,
+    full_name: fullName,
+    avatar_url: tg.photo_url || null,
+  }])
+  .select()
+  .single();
 
-    if (insertError) {
-      console.error('User insert error:', insertError);
-      return res.status(500).json({ 
-        ok: false, 
-        message: "Foydalanuvchi yaratishda xato" 
-      });
-    }
+if (insertError) {
+  console.error('User insert error FULL:', JSON.stringify(insertError));
+  return res.status(500).json({ 
+    ok: false, 
+    message: insertError.message, // <-- aniq xatoni frontendga yuboring
+    details: insertError.details,
+    hint: insertError.hint,
+    code: insertError.code,
+  });
+}
 
     finalUser = newUser;
 
