@@ -907,96 +907,38 @@ export default function Home() {
     setTgAuthLoading(false);
   };
 
-  const handleTelegramVerify = async (code) => {
-    setTgAuthError('');
-    setTgAuthLoading(true);
+const handleTelegramVerify = async (code) => {
+  setTgAuthError('');
+  setTgAuthLoading(true);
 
-    try {
-      const res = await fetch('/api/auth/telegram/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      });
-      const data = await res.json();
+  try {
+    const res = await fetch('/api/auth/telegram/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
 
-      if (!res.ok || !data?.ok || !data?.telegram?.id) {
-        throw new Error(data?.message || 'Kod notogri yoki eskirgan');
-      }
+    const data = await res.json();
 
-      const tg = data.telegram;
-      const fullName = `${tg.first_name || ''} ${tg.last_name || ''}`.trim() || (tg.username ? tg.username : 'TelegramUser');
-      const cleanUsernameBase = (tg.username || fullName || 'tguser')
-        .replace(/[^a-zA-Z0-9]/g, '')
-        .substring(0, 10) || 'tguser';
-
-      const fallbackUsername = `${cleanUsernameBase}`.substring(0, 10);
-
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('*')
-        .eq('telegram_id', String(tg.id))
-        .maybeSingle();
-
-      let finalUser = existingUser;
-
-      if (!existingUser) {
-        const { data: sameUsername } = await supabase
-          .from('users')
-          .select('id, username')
-          .eq('username', fallbackUsername)
-          .maybeSingle();
-
-        const finalUsername = sameUsername
-          ? (fallbackUsername.substring(0, 7) + String(tg.id).slice(-3)).substring(0, 10)
-          : fallbackUsername;
-
-        const { data: newUser, error: insErr } = await supabase
-          .from('users')
-          .insert([{
-            username: finalUsername,
-            password: `telegram_${tg.id}`, 
-            provider: 'telegram',
-            telegram_id: String(tg.id),
-            telegram_username: tg.username || null,
-            full_name: fullName,
-            avatar_url: tg.photo_url || null,
-          }])
-          .select()
-          .single();
-
-        if (insErr) {
-          throw new Error("Telegram orqali ro'yxatdan o'tishda xato");
-        }
-        finalUser = newUser;
-      } else {
-        const { data: updatedUser } = await supabase
-          .from('users')
-          .update({
-            full_name: fullName,
-            avatar_url: tg.photo_url || existingUser.avatar_url || null,
-            telegram_username: tg.username || existingUser.telegram_username || null,
-            provider: 'telegram',
-          })
-          .eq('id', existingUser.id)
-          .select()
-          .single();
-        finalUser = updatedUser || existingUser;
-      }
-
-      if (finalUser) {
-        localStorage.setItem('anime_user', JSON.stringify(finalUser));
-        setCurrentUser(finalUser);
-        await loadUserFavorites(finalUser.id);
-        closeTelegramModal();
-        hideAuthModal();
-        showModal('success', `Xush kelibsiz, ${finalUser.username}!`);
-      }
-    } catch (e) {
-      setTgAuthError(e.message || 'Telegram verify xato');
+    if (!res.ok || !data.ok || !data.user) {
+      throw new Error(data.message || 'Kod noto\'g\'ri yoki eskirgan');
     }
 
-    setTgAuthLoading(false);
-  };
+    // User tayyor — to'g'ridan-to'g'ri ishlatamiz
+    const finalUser = data.user;
+    localStorage.setItem('anime_user', JSON.stringify(finalUser));
+    setCurrentUser(finalUser);
+    await loadUserFavorites(finalUser.id);
+    closeTelegramModal();
+    hideAuthModal();
+    showModal('success', `Xush kelibsiz, ${finalUser.username}!`);
+
+  } catch (e) {
+    setTgAuthError(e.message || 'Xato yuz berdi');
+  }
+
+  setTgAuthLoading(false);
+};
 
   const handleLogin = async (username, password) => {
     setAuthLoading(true);
