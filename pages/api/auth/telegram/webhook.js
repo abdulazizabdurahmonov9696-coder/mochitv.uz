@@ -7,18 +7,17 @@ const supabase = createClient(
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-// Update ID larni saqlash (xotirada — duplicate oldini olish)
-const processedUpdates = new Set();
-
 async function sendMessage(chatId, text) {
   try {
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
     });
+    const d = await r.json();
+    if (!d.ok) console.error('sendMessage xato:', d);
   } catch (err) {
-    console.error('sendMessage xato:', err);
+    console.error('sendMessage exception:', err);
   }
 }
 
@@ -29,24 +28,40 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body;
+    const updateId = body?.update_id;
+
+    // ✅ 1. update_id bazada bormi? (duplicate bloklash)
+    if (updateId) {
+      const { error: dupInsertError } = await supabase
+        .from('telegram_processed_updates')
+        .insert([{ update_id: updateId }]);
+
+      if (dupInsertError) {
+        // PRIMARY KEY conflict — bu update allaqachon qayta ishlangan
+        console.log('Duplicate update_id, skip:', updateId);
+        return res.status(200).json({ ok: true });
+      }
+
+      // Eski updatelarni tozalash (1000 dan oshsa)
+      supabase
+        .from('telegram_processed_updates')
+        .delete()
+        .lt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .then(() => {});
+    }
+
+    // 2. Message bormi?
     if (!body?.message?.from) {
       return res.status(200).json({ ok: true });
     }
 
-    const { message } = body;
-    const { from, text } = message;
-    const updateId = body.update_id;
+    const { from, text } = body.message;
 
-    // ✅ Duplicate xabarni bloklash
-    if (updateId && processedUpdates.has(updateId)) {
-      console.log('Duplicate update, skip:', updateId);
+    if (!from?.id) {
       return res.status(200).json({ ok: true });
     }
-    if (updateId) processedUpdates.add(updateId);
 
-    // Set 100 dan oshsa tozalash
-    if (processedUpdates.size > 100) processedUpdates.clear();
-
+    // 3. Faqat /start ga javob
     if (!text || !text.startsWith('/start')) {
       await sendMessage(from.id, '👋 Saytga kirish uchun /start bosing.');
       return res.status(200).json({ ok: true });
@@ -54,28 +69,34 @@ export default async function handler(req, res) {
 
     const telegramId = String(from.id);
 
-    // ✅ 30 soniya ichida kod yuborilganmi?
+    // 4. 30 soniya ichida kod yuborilganmi?
     const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
     const { data: recentCode } = await supabase
       .from('telegram_auth_codes')
-      .select('created_at')
+      .select('created_at, code')
       .eq('telegram_id', telegramId)
       .eq('used', false)
       .gt('created_at', thirtySecondsAgo)
       .maybeSingle();
 
     if (recentCode) {
-      await sendMessage(from.id, '⏳ Kod allaqachon yuborilgan. Iltimos saytga kirib kodni kiriting.');
+      await sendMessage(
+        from.id,
+        `⏳ Kod allaqachon yuborilgan!\n\n` +
+        `<code>${recentCode.code}</code>\n\n` +
+        `📱 Saytga kirib ushbu kodni kiriting.\n` +
+        `30 soniyadan keyin yangi kod olishingiz mumkin.`
+      );
       return res.status(200).json({ ok: true });
     }
 
-    // Eski kodlarni o'chirish
+    // 5. Eski kodlarni o'chirish
     await supabase
       .from('telegram_auth_codes')
       .delete()
       .eq('telegram_id', telegramId);
 
-    // Yangi kod
+    // 6. Yangi 5 xonali kod
     const code = Math.floor(10000 + Math.random() * 90000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
@@ -87,6 +108,7 @@ export default async function handler(req, res) {
       photo_url: null,
     };
 
+    // 7. Kodni saqlash
     const { error: insertError } = await supabase
       .from('telegram_auth_codes')
       .insert([{
@@ -103,7 +125,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
-    // ✅ Kod saqlandi — xabar yuborish
+    // 8. Kodni yuborish
     await sendMessage(
       from.id,
       `🎌 <b>MochiTV</b> ga xush kelibsiz!\n\n` +
