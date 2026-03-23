@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import Script from 'next/script';
-import { Heart, LogOut, Lock, Loader, Eye, Play, Youtube, X, Search, Calendar, ExternalLink, ThumbsUp, Share2, CheckCircle , Star} from 'lucide-react';
+import { Heart, LogOut, Lock, Loader, Eye, Play, Youtube, X, Search, Calendar, ExternalLink, ThumbsUp, Share2, CheckCircle , Star, Bell} from 'lucide-react';
 import { FaTelegramPlane } from "react-icons/fa";
 import { IoBookmarkOutline, IoBookmark } from "react-icons/io5";
 import { LuInstagram } from "react-icons/lu";
@@ -13,6 +13,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const LOGO_URL = '/assets/lego.png';
+const DEFAULT_AVATAR = "https://i.pinimg.com/736x/ce/21/07/ce21071acfd1e9deb34850f70285a5f0.jpg";
 
 // --- MANTIQ: 24 Soatlik Random (Seeded Shuffle) ---
 const getDailySeed = () => {
@@ -37,300 +38,6 @@ const dailyShuffle = (array) => {
   return shuffled;
 };
 // --------------------------------------------------
-
-// ===================================================
-// NEWS SKELETON COMPONENT — Mobile friendly
-// ===================================================
-const NewsSkeletonCard = () => (
-  <div className="news-skeleton-card">
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 20px' }}>
-      <div className="ns-block" style={{ width: 70, height: 28, borderRadius: 50 }} />
-      <div className="ns-block" style={{ width: 90, height: 28, borderRadius: 50 }} />
-    </div>
-    <div style={{ padding: '0 20px 20px', marginTop: 'auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-        <div className="ns-block" style={{ width: 45, height: 45, borderRadius: '50%', flexShrink: 0 }} />
-        <div style={{ flex: 1 }}>
-          <div className="ns-block" style={{ width: '60%', height: 13, borderRadius: 6, marginBottom: 6 }} />
-          <div className="ns-block" style={{ width: '40%', height: 11, borderRadius: 6 }} />
-        </div>
-        <div className="ns-block" style={{ width: 58, height: 28, borderRadius: 20 }} />
-      </div>
-      <div className="ns-block" style={{ width: '90%', height: 21, borderRadius: 6, marginBottom: 8 }} />
-      <div className="ns-block" style={{ width: '70%', height: 21, borderRadius: 6, marginBottom: 14 }} />
-      <div className="ns-block" style={{ width: '100%', height: 13, borderRadius: 4, marginBottom: 6 }} />
-      <div className="ns-block" style={{ width: '75%', height: 13, borderRadius: 4, marginBottom: 22 }} />
-      <div className="ns-block" style={{ width: '100%', height: 46, borderRadius: 12 }} />
-    </div>
-  </div>
-);
-
-// ===================================================
-// ✅ NEWS SLIDER — DOM-ref usuli (100% ishonchli infinity loop)
-// ===================================================
-const NewsSlider = ({ news, loading }) => {
-  const[itemsPerView, setItemsPerView] = useState(3);
-
-  const trackRef = useRef(null);
-  const idxRef = useRef(0);
-  const ipvRef = useRef(3);
-  const lenRef = useRef(0);
-  const intervalRef = useRef(null);
-  const isJumping = useRef(false);
-  const isTouching = useRef(false);
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
-
-  const safeNews = Array.isArray(news) && news.length > 0 ? news : [];
-
-  useEffect(() => {
-    ipvRef.current = itemsPerView;
-  },[itemsPerView]);
-
-  useEffect(() => {
-    lenRef.current = safeNews.length;
-  }, [safeNews.length]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const w = window.innerWidth;
-      const ipv = w >= 1200 ? 3 : w >= 768 ? 2 : 1;
-      ipvRef.current = ipv;
-      setItemsPerView(ipv);
-      if (trackRef.current) {
-        idxRef.current = 0;
-        trackRef.current.style.transition = 'none';
-        trackRef.current.style.transform = 'translateX(0%)';
-      }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  },[]);
-
-  const moveTo = (newIdx) => {
-    if (!trackRef.current) return;
-    idxRef.current = newIdx;
-    trackRef.current.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
-    trackRef.current.style.transform = `translateX(-${newIdx * (100 / ipvRef.current)}%)`;
-  };
-
-  const jumpTo = (newIdx) => {
-    if (!trackRef.current) return;
-    idxRef.current = newIdx;
-    trackRef.current.style.transition = 'none';
-    trackRef.current.style.transform = `translateX(-${newIdx * (100 / ipvRef.current)}%)`;
-  };
-
-  const stopAuto = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  };
-
-  const startAuto = () => {
-    stopAuto();
-    if (lenRef.current > ipvRef.current) {
-      intervalRef.current = setInterval(() => {
-        nextSlide();
-      }, 4000);
-    }
-  };
-
-  const nextSlide = () => {
-    if (lenRef.current === 0 || isJumping.current || lenRef.current <= ipvRef.current) return;
-    
-    // Background tab / transitionend ishlamay qolishining oldini olish
-    if (idxRef.current >= lenRef.current) {
-      isJumping.current = true;
-      jumpTo(0);
-      setTimeout(() => {
-        isJumping.current = false;
-        moveTo(1);
-      }, 50);
-      return;
-    }
-    moveTo(idxRef.current + 1);
-  };
-
-  const prevSlide = () => {
-    if (lenRef.current === 0 || isJumping.current || lenRef.current <= ipvRef.current) return;
-    stopAuto();
-    
-    if (idxRef.current <= 0) {
-      isJumping.current = true;
-      jumpTo(lenRef.current);
-      setTimeout(() => {
-        isJumping.current = false;
-        moveTo(lenRef.current - 1);
-      }, 50);
-      return;
-    }
-    moveTo(idxRef.current - 1);
-  };
-
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
-
-    const onTransitionEnd = () => {
-      const idx = idxRef.current;
-      const len = lenRef.current;
-      if (len === 0 || len <= ipvRef.current) return;
-
-      if (idx >= len) {
-        isJumping.current = true;
-        jumpTo(idx - len);
-        setTimeout(() => {
-          isJumping.current = false;
-        }, 50);
-      } else if (idx < 0) {
-        isJumping.current = true;
-        jumpTo(len - 1);
-        setTimeout(() => {
-          isJumping.current = false;
-        }, 50);
-      }
-    };
-
-    track.addEventListener('transitionend', onTransitionEnd);
-    return () => track.removeEventListener('transitionend', onTransitionEnd);
-  },[safeNews.length]);
-
-  useEffect(() => {
-    if (safeNews.length === 0) return;
-    startAuto();
-
-    // Tab yopilganda yozishni to'xtatish
-    const handleVisibilityChange = () => {
-      if (document.hidden) stopAuto();
-      else startAuto();
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      stopAuto();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemsPerView, safeNews.length]);
-
-  const handleTouchStart = (e) => {
-    if (lenRef.current <= ipvRef.current) return;
-    stopAuto();
-    isTouching.current = true;
-    touchStartX.current = e.targetTouches[0].clientX;
-  };
-
-  const handleTouchMove = (e) => {
-    if (!isTouching.current) return;
-    touchEndX.current = e.targetTouches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    if (!isTouching.current) return;
-    const distance = touchStartX.current - touchEndX.current;
-    if (distance > 50) nextSlide();
-    if (distance < -50) prevSlide();
-    isTouching.current = false;
-    startAuto();
-  };
-
-  if (loading || (!safeNews || safeNews.length === 0 && loading)) {
-    return (
-      <div className="news-section-wrapper">
-        <div className="row-title-header">
-          <h2 className="news-main-title">E'lon va yangiliklar</h2>
-        </div>
-        <div className="news-skeleton-scroll">
-          {[1, 2, 3].map((i) => (
-            <NewsSkeletonCard key={i} />
-          ))}
-        </div>
-      </div>
-    );
-  }
-  
-  if (!loading && safeNews.length === 0) return null;
-
-  const needsSlider = safeNews.length > itemsPerView;
-  const clones = needsSlider ? safeNews.slice(0, itemsPerView) :[];
-  const extendedNews = [...safeNews, ...clones];
-
-  return (
-    <div className="news-section-wrapper">
-      <div className="row-title-header">
-        <h2 className="news-main-title">E'lon va yangiliklar</h2>
-      </div>
-
-      <div
-        className="news-slider-viewport"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div
-          ref={trackRef}
-          className="news-track"
-          style={{
-            display: 'flex',
-            width: '100%',
-            willChange: 'transform',
-          }}
-        >
-          {extendedNews.map((item, index) => (
-            <div 
-              key={`${item.id}-${index}`} 
-              className="news-slide-item"
-              style={{
-                flex: `0 0 ${100 / itemsPerView}%`,
-                maxWidth: `${100 / itemsPerView}%`,
-                padding: '0 10px'
-              }}
-            >
-               <div className="news-card">
-                <div className="news-bg-image" style={{ backgroundImage: `url(${item.image_url || LOGO_URL})` }}></div>
-                <div className="news-overlay"></div>
-
-                <div className="news-header">
-                  <div className="news-views">
-                    <span style={{ fontWeight: '700' }}>Popular</span>
-                  </div>
-                  <div className="news-date">
-                    <Calendar size={14} />
-                    <span>{new Date(item.created_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
-
-                <div className="news-content-wrapper">
-                  <div className="news-author">
-                    <img src="https://mochitv.uz/favicon.png" alt="Author" className="news-author-img" />
-                    <div className="news-author-info">
-                      <div className="news-author-name">
-                        MochitvUz
-                        <CheckCircle size={14} className="verified-icon" fill="#3b82f6" color="#fff" />
-                      </div>
-                    </div>
-                    <button className="news-sub-btn">Obuna</button>
-                  </div>
-
-                  <div className="news-text-body">
-                    <h3 className="news-title">🔥 {item.title}</h3>
-                    <p className="news-desc">{item.content}</p>
-                  </div>
-
-                  <a href={item.external_link || '#'} target="_blank" rel="noreferrer" className="news-action-btn">
-                    To'liq ko'rish <ExternalLink size={16} />
-                  </a>
-                </div>
-
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 
 // Skeleton Card Component
 const SkeletonCard = () => (
@@ -709,6 +416,12 @@ export default function Home() {
   const[allViews, setAllViews] = useState({});
   const [isMobile, setIsMobile] = useState(false);
 
+  // ✅ YANGI: Avatar dropdown va Notification modal statelari
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const avatarMenuRef = useRef(null);
+
   const showModal = (type, message, onConfirm = null) => {
     setModal({ show: true, type, message, onConfirm });
   };
@@ -763,6 +476,17 @@ export default function Home() {
     }
   };
 
+  // ✅ Tashqarida click qilganda avatar menuni yopish
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(e.target)) {
+        setShowAvatarMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   useEffect(() => {
     setMounted(true);
     checkCurrentUser();
@@ -794,6 +518,7 @@ export default function Home() {
         const userData = JSON.parse(user);
         setCurrentUser(userData);
         await loadUserFavorites(userData.id);
+        await loadNotifications(userData.id);
       }
     } catch (error) {
       console.error('User check error:', error);
@@ -812,6 +537,20 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Load favorites error:', error);
+    }
+  };
+
+  // ✅ YANGI: Bildirishnomalarni yuklash
+  const loadNotifications = async (userId) => {
+    try {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      if (data) setNotifications(data);
+    } catch (e) {
+      console.warn('Notifications load error:', e.message);
     }
   };
 
@@ -924,11 +663,11 @@ const handleTelegramVerify = async (code) => {
       throw new Error(data.message || 'Kod noto\'g\'ri yoki eskirgan');
     }
 
-    // User tayyor — to'g'ridan-to'g'ri ishlatamiz
     const finalUser = data.user;
     localStorage.setItem('anime_user', JSON.stringify(finalUser));
     setCurrentUser(finalUser);
     await loadUserFavorites(finalUser.id);
+    await loadNotifications(finalUser.id);
     closeTelegramModal();
     hideAuthModal();
     showModal('success', `Xush kelibsiz, ${finalUser.username}!`);
@@ -959,6 +698,7 @@ const handleTelegramVerify = async (code) => {
       localStorage.setItem('anime_user', JSON.stringify(data));
       setCurrentUser(data);
       await loadUserFavorites(data.id);
+      await loadNotifications(data.id);
       hideAuthModal();
       showModal('success', 'Xush kelibsiz, ' + data.username + '!');
     } catch (error) {
@@ -1043,6 +783,8 @@ const handleTelegramVerify = async (code) => {
     localStorage.removeItem('anime_user');
     setCurrentUser(null);
     setFavorites([]);
+    setNotifications([]);
+    setShowAvatarMenu(false);
     showModal('success', 'Tizimdan chiqdingiz!');
   };
 
@@ -1120,6 +862,18 @@ const goToAnime = (anime) => {
   const goToAdmin = () => {
     window.location.href = '/admin/admin';
   };
+
+  // ✅ Notification modal ochish va o'qilgan deb belgilash
+  const handleOpenNotifModal = () => {
+    setShowNotifModal(true);
+    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+    if (unreadIds.length > 0) {
+      supabase.from('notifications').update({ is_read: true }).in('id', unreadIds).then();
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (!mounted) return null;
   const isAdmin = currentUser?.username === 'Malika';
@@ -1202,39 +956,6 @@ const goToAnime = (anime) => {
            .carousel-skeleton { height: 300px; }
         }
 
-        /* --- NEWS SKELETON --- */
-        .news-skeleton-scroll {
-          display: flex;
-          gap: 20px;
-          overflow-x: auto;
-          overflow-y: hidden;
-          padding: 0 0 16px;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        .news-skeleton-scroll::-webkit-scrollbar { display: none; }
-        .news-skeleton-card {
-          flex: 0 0 calc(33.33% - 14px);
-          min-width: 260px;
-          height: 400px;
-          border-radius: 24px;
-          background: #0f1219;
-          border: 1px solid rgba(255,255,255,0.05);
-          position: relative;
-          flex-shrink: 0;
-          display: flex;
-          flex-direction: column;
-          animation: simplePulse 1.5s ease-in-out infinite;
-        }
-        @media (max-width: 1199px) {
-          .news-skeleton-card { flex: 0 0 calc(50% - 10px); min-width: 220px; }
-        }
-        @media (max-width: 767px) {
-          .news-skeleton-card { flex: 0 0 82vw; min-width: 0; height: 350px; }
-        }
-        .ns-block { background: #1a1f2b; }
-
         /* --- ANIME CARD SKELETON --- */
         .anime-card-skeleton {
           width: 200px;
@@ -1273,7 +994,6 @@ const goToAnime = (anime) => {
           z-index: 1;
         }
 
-
         /* ✅ ORQA FON EFFEKTLARI */
         .bg-grid {
           position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -1291,165 +1011,6 @@ const goToAnime = (anime) => {
             linear-gradient(to top, #090b10 0%, transparent 100%);
           pointer-events: none;
           z-index: 0;
-        }
-
-        /* --- NEWS SLIDER CSS --- */
-        .news-section-wrapper {
-          width: 100%;
-          max-width: 1400px;
-          margin: 0 auto 50px;
-          padding: 0 20px;
-        }
-        .news-main-title {
-          font-size: 24px;
-          font-weight: 700;
-          color: #fff;
-          border-left: 4px solid #8b5cf6;
-          padding-left: 12px;
-          margin-bottom: 20px;
-          text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
-        }
-        .news-slider-viewport {
-          width: 100%;
-          overflow: hidden;
-          position: relative;
-          cursor: grab;
-          padding-bottom: 20px;
-        }
-        .news-slider-viewport:active { cursor: grabbing; }
-        .news-track {
-          display: flex;
-          will-change: transform;
-        }
-        .news-slide-item {
-          flex-shrink: 0;
-          padding: 0 10px;
-          box-sizing: border-box;
-        }
-        .news-card {
-          position: relative;
-          width: 100%;
-          height: 400px;
-          border-radius: 24px;
-          overflow: hidden;
-          background: #111;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .news-bg-image {
-          position: absolute;
-          top: 0; left: 0;
-          width: 100%; height: 100%;
-          background-size: cover;
-          background-position: center;
-          transition: transform 0.5s;
-        }
-        .news-card:hover .news-bg-image { transform: scale(1.05); }
-        .news-overlay {
-          position: absolute;
-          top: 0; left: 0;
-          width: 100%; height: 100%;
-          background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.8) 60%, #000 100%);
-          z-index: 1;
-        }
-        .news-header {
-          position: relative;
-          z-index: 2;
-          display: flex;
-          justify-content: space-between;
-          padding: 15px 20px;
-        }
-        .news-views, .news-date {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          background: rgba(0, 0, 0, 0.5);
-          backdrop-filter: blur(10px);
-          padding: 6px 12px;
-          border-radius: 50px;
-          font-size: 12px;
-          font-weight: 600;
-          border: 1px solid rgba(255,255,255,0.1);
-        }
-        .news-content-wrapper {
-          position: relative;
-          z-index: 2;
-          padding: 0 20px;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-        }
-        .news-author {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 15px;
-        }
-        .news-author-img {
-          width: 45px;
-          height: 45px;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid rgba(255,255,255,0.1);
-        }
-        .news-author-info { flex: 1; }
-        .news-author-name {
-          font-weight: 700;
-          font-size: 15px;
-          display: flex;
-          align-items: center;
-          gap: 5px;
-        }
-        .verified-icon { margin-left: 4px; }
-        .news-sub-btn {
-          background: rgba(255,255,255,0.9);
-          color: #000;
-          border: none;
-          padding: 6px 16px;
-          border-radius: 20px;
-          font-weight: 700;
-          font-size: 12px;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-        .news-sub-btn:hover { background: #fff; transform: scale(1.05); }
-        .news-text-body { margin-bottom: 20px; }
-        .news-title {
-          font-size: 20px;
-          font-weight: 800;
-          margin-bottom: 8px;
-          line-height: 1.3;
-          text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-        }
-        .news-desc {
-          font-size: 14px;
-          color: rgba(255,255,255,0.8);
-          line-height: 1.5;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-        .news-action-btn {
-          color: #fff;
-          text-decoration: none;
-          padding: 12px;
-          border-radius: 12px;
-          text-align: center;
-          border: 1px solid;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          transition: transform 0.3s;
-        }
-        .news-action-btn:hover {
-          transform: translateY(-2px);
         }
 
         /* --- MAIN STYLES --- */
@@ -1489,6 +1050,8 @@ const goToAnime = (anime) => {
         .card-image.loaded { opacity: 1; }
 
         .container { width: 100%; min-height: 100vh; position: relative; z-index: 1; }
+
+        /* ✅ HEADER */
         .site-header {
           position: sticky;
           top: 0; left: 0; right: 0;
@@ -1502,7 +1065,34 @@ const goToAnime = (anime) => {
           backdrop-filter: blur(10px);
         }
         .header-logo { height: 40px; width: auto; cursor: pointer; }
-        .header-right { display: flex; align-items: center; }
+        .header-right { display: flex; align-items: center; gap: 8px; }
+
+        /* ✅ Lavhalar link */
+        .lavhalar-link {
+          display: none;
+          align-items: center;
+          gap: 6px;
+          color: rgba(255,255,255,0.75);
+          font-size: 14px;
+          font-weight: 600;
+          padding: 8px 16px;
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.04);
+          cursor: pointer;
+          text-decoration: none;
+          transition: all 0.25s;
+          white-space: nowrap;
+        }
+        .lavhalar-link:hover {
+          color: #fff;
+          background: rgba(255,255,255,0.1);
+          border-color: rgba(255,255,255,0.25);
+        }
+        @media (min-width: 1200px) {
+          .lavhalar-link { display: flex; }
+        }
+
         .search-btn {
           background: none;
           border: none;
@@ -1531,6 +1121,267 @@ const goToAnime = (anime) => {
           gap: 8px;
         }
         .login-btn:hover { background: rgba(59, 130, 246, 0.3); transform: translateY(-2px); }
+
+        /* ✅ NOTIFICATION BELL */
+        .notif-bell-btn {
+          position: relative;
+          background: none;
+          border: none;
+          color: rgba(255,255,255,0.75);
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.25s;
+        }
+        .notif-bell-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+        .notif-badge {
+          position: absolute;
+          top: 4px; right: 4px;
+          background: #ef4444;
+          color: #fff;
+          font-size: 10px;
+          font-weight: 700;
+          border-radius: 50%;
+          width: 16px; height: 16px;
+          display: flex; align-items: center; justify-content: center;
+          border: 1.5px solid #090b10;
+        }
+
+        /* ✅ AVATAR WRAPPER */
+        .avatar-header-wrap {
+          position: relative;
+        }
+        .avatar-header-btn {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          overflow: hidden;
+          cursor: pointer;
+          border: 2px solid rgba(255,255,255,0.15);
+          transition: border-color 0.25s, transform 0.2s;
+          background: #111;
+          flex-shrink: 0;
+        }
+        .avatar-header-btn:hover {
+          border-color: #d946ef;
+          transform: scale(1.07);
+        }
+        .avatar-header-btn img {
+          width: 100%; height: 100%; object-fit: cover; display: block;
+        }
+
+        /* ✅ AVATAR DROPDOWN MENU */
+        @keyframes dropIn {
+          from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .avatar-dropdown {
+          position: absolute;
+          top: calc(100% + 12px);
+          right: 0;
+          min-width: 200px;
+          background: rgba(18, 18, 24, 0.97);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 16px;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+          padding: 8px;
+          z-index: 9999;
+          animation: dropIn 0.2s ease;
+        }
+        .avatar-dropdown-user {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px 12px;
+          border-bottom: 1px solid rgba(255,255,255,0.07);
+          margin-bottom: 6px;
+        }
+        .avatar-dropdown-user img {
+          width: 36px; height: 36px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 1.5px solid rgba(255,255,255,0.15);
+        }
+        .avatar-dropdown-username {
+          font-size: 14px;
+          font-weight: 700;
+          color: #fff;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 120px;
+        }
+        .avatar-dropdown-role {
+          font-size: 11px;
+          color: rgba(255,255,255,0.4);
+          margin-top: 1px;
+        }
+        .avatar-dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          color: rgba(255,255,255,0.8);
+          transition: background 0.2s, color 0.2s;
+          border: none;
+          background: none;
+          width: 100%;
+          text-align: left;
+        }
+        .avatar-dropdown-item:hover {
+          background: rgba(255,255,255,0.07);
+          color: #fff;
+        }
+        .avatar-dropdown-item.danger {
+          color: rgba(239,68,68,0.85);
+        }
+        .avatar-dropdown-item.danger:hover {
+          background: rgba(239,68,68,0.1);
+          color: #ef4444;
+        }
+        .avatar-dropdown-divider {
+          height: 1px;
+          background: rgba(255,255,255,0.07);
+          margin: 4px 0;
+        }
+
+        /* ✅ NOTIFICATION MODAL */
+        @keyframes notifSlideIn {
+          from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .notif-modal-overlay {
+          position: fixed; inset: 0;
+          background: rgba(0,0,0,0.5);
+          backdrop-filter: blur(6px);
+          z-index: 99998;
+          display: flex;
+          align-items: flex-start;
+          justify-content: flex-end;
+          padding: 72px 20px 20px;
+        }
+        .notif-modal-box {
+          width: 100%;
+          max-width: 380px;
+          max-height: 70vh;
+          background: rgba(14,16,22,0.98);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 20px;
+          box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          animation: notifSlideIn 0.25s ease;
+        }
+        .notif-modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 18px 20px 14px;
+          border-bottom: 1px solid rgba(255,255,255,0.07);
+          flex-shrink: 0;
+        }
+        .notif-modal-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .notif-modal-count {
+          background: rgba(217,70,239,0.2);
+          color: #d946ef;
+          font-size: 11px;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 20px;
+          border: 1px solid rgba(217,70,239,0.3);
+        }
+        .notif-modal-close {
+          background: rgba(255,255,255,0.06);
+          border: none;
+          color: rgba(255,255,255,0.5);
+          width: 30px; height: 30px;
+          border-radius: 8px;
+          cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          transition: all 0.2s;
+        }
+        .notif-modal-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+        .notif-modal-list {
+          overflow-y: auto;
+          padding: 10px 12px 12px;
+          flex: 1;
+        }
+        .notif-modal-list::-webkit-scrollbar { width: 3px; }
+        .notif-modal-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+        .notif-item-card {
+          display: flex;
+          gap: 12px;
+          align-items: flex-start;
+          padding: 12px;
+          border-radius: 12px;
+          margin-bottom: 6px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.05);
+          transition: background 0.2s;
+          position: relative;
+        }
+        .notif-item-card.unread {
+          background: rgba(217,70,239,0.06);
+          border-color: rgba(217,70,239,0.15);
+        }
+        .notif-item-card:hover { background: rgba(255,255,255,0.06); }
+        .notif-item-dot {
+          width: 8px; height: 8px;
+          border-radius: 50%;
+          background: #d946ef;
+          flex-shrink: 0;
+          margin-top: 5px;
+        }
+        .notif-item-dot.read { background: transparent; }
+        .notif-item-body { flex: 1; min-width: 0; }
+        .notif-item-title {
+          font-size: 13px;
+          font-weight: 700;
+          color: #fff;
+          margin-bottom: 3px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .notif-item-msg {
+          font-size: 12px;
+          color: rgba(255,255,255,0.6);
+          line-height: 1.5;
+        }
+        .notif-item-time {
+          font-size: 10px;
+          color: rgba(255,255,255,0.3);
+          margin-top: 5px;
+          display: block;
+        }
+        .notif-empty {
+          text-align: center;
+          padding: 40px 20px;
+          color: rgba(255,255,255,0.3);
+          font-size: 14px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+        }
+
         .user-info {
           display: flex;
           align-items: center;
@@ -2185,21 +2036,21 @@ const goToAnime = (anime) => {
           .footer-section { display: flex; justify-content: center; }
           .horizontal-card { width: 150px; }
           .row-title { font-size: 20px; }
-          .news-card { height: 380px; }
+          .site-header { padding: 18px 20px; }
+          .notif-modal-box { max-width: 100%; border-radius: 20px 20px 0 0; }
+          .notif-modal-overlay { padding: 0; align-items: flex-end; }
         }
         @media (max-width: 768px) {
           .search-btn { display: none !important; }
           .card-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-
-  display: -webkit-box;
-  -webkit-line-clamp: 2;   /* 2 qator */
-  -webkit-box-orient: vertical;
-
-  overflow: hidden;
-}
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
         }
         @media (max-width: 600px) {
           ::-webkit-scrollbar { width: 0px; }
@@ -2222,8 +2073,6 @@ const goToAnime = (anime) => {
           .search-result-image { width: 60px; height: 90px; }
           .search-result-title { font-size: 14px; }
           .search-result-meta { font-size: 12px; gap: 10px; }
-          .news-card { height: 350px; }
-          .news-title { font-size: 18px; }
         }
       `}</style>
 
@@ -2232,22 +2081,69 @@ const goToAnime = (anime) => {
       <div className="bg-vignette"></div>
 
       <div className="container">
-        {/* Header */}
+        {/* ✅ Header */}
         <div className="site-header">
           <img src={LOGO_URL} alt="Mochi" className="header-logo" onClick={() => window.location.href = '/'} />
           
           <div className="header-right">
+            {/* ✅ Lavhalar link — faqat desktop (≥1200px) da ko'rinadi */}
+            <a href="/wall" className="lavhalar-link">
+              🎨 Lavhalar
+            </a>
+
             <button className="search-btn" onClick={showSearchModal}>
               <Search size={20} />
             </button>
             
             {currentUser ? (
-              <div className="user-info">
-                <span className="user-name" onClick={goToProfile}>{currentUser.username}</span>
-                <button className="logout-btn" onClick={handleLogout}>
-                  <LogOut size={16} />
+              <>
+                {/* ✅ Notification Bell */}
+                <button className="notif-bell-btn" onClick={handleOpenNotifModal}>
+                  <Bell size={20} />
+                  {unreadCount > 0 && <span className="notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
                 </button>
-              </div>
+
+                {/* ✅ Avatar + Dropdown */}
+                <div className="avatar-header-wrap" ref={avatarMenuRef}>
+                  <div
+                    className="avatar-header-btn"
+                    onClick={() => setShowAvatarMenu(v => !v)}
+                  >
+                    <img
+                      src={currentUser.avatar_url || DEFAULT_AVATAR}
+                      alt={currentUser.username}
+                    />
+                  </div>
+
+                  {showAvatarMenu && (
+                    <div className="avatar-dropdown">
+                      <div className="avatar-dropdown-user">
+                        <img src={currentUser.avatar_url || DEFAULT_AVATAR} alt={currentUser.username} />
+                        <div>
+                          <div className="avatar-dropdown-username">{currentUser.username}</div>
+                          <div className="avatar-dropdown-role">Foydalanuvchi</div>
+                        </div>
+                      </div>
+
+                      <button
+                        className="avatar-dropdown-item"
+                        onClick={() => { setShowAvatarMenu(false); goToProfile(); }}
+                      >
+                        👤 &nbsp; Profil
+                      </button>
+
+                      <div className="avatar-dropdown-divider" />
+
+                      <button
+                        className="avatar-dropdown-item danger"
+                        onClick={handleLogout}
+                      >
+                        <LogOut size={15} /> Chiqish
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
             ) : (
               <button className="login-btn" onClick={() => showAuthModal('login')}>
                 Kirish
@@ -2264,7 +2160,6 @@ const goToAnime = (anime) => {
                 <div>Carousel bo'sh</div>
               </div>
             ) : loading ? (
-              // ✅ QOTIRMAYDIGAN QORA SKELETON LOADER
               <div className="carousel-skeleton">
                 <div className="carousel-skel-content">
                   <div className="skel-title"></div>
@@ -2345,9 +2240,6 @@ const goToAnime = (anime) => {
             </div>
           )}
         </div>
-
-        {/* ✅ NEWS SECTION */}
-        <NewsSlider news={newsData} loading={loading} />
 
         {/* Admin Panel Button */}
         {isAdmin && (
@@ -2511,6 +2403,46 @@ const goToAnime = (anime) => {
               <div className="modal-message">{modal.message}</div>
               <div className="modal-actions">
                 <button className="modal-btn primary" onClick={hideModal}>OK</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ✅ NOTIFICATION MODAL */}
+        {showNotifModal && (
+          <div className="notif-modal-overlay" onClick={() => setShowNotifModal(false)}>
+            <div className="notif-modal-box" onClick={e => e.stopPropagation()}>
+              <div className="notif-modal-header">
+                <div className="notif-modal-title">
+                  🔔 Bildirishnomalar
+                  {notifications.length > 0 && (
+                    <span className="notif-modal-count">{notifications.length}</span>
+                  )}
+                </div>
+                <button className="notif-modal-close" onClick={() => setShowNotifModal(false)}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="notif-modal-list">
+                {notifications.length === 0 ? (
+                  <div className="notif-empty">
+                    <span style={{ fontSize: 36 }}>🔕</span>
+                    <span>Bildirishnomalar yo'q</span>
+                  </div>
+                ) : (
+                  notifications.map(n => (
+                    <div key={n.id} className={`notif-item-card ${!n.is_read ? 'unread' : ''}`}>
+                      <div className={`notif-item-dot ${n.is_read ? 'read' : ''}`} />
+                      <div className="notif-item-body">
+                        <div className="notif-item-title">{n.title}</div>
+                        <div className="notif-item-msg">{n.message}</div>
+                        <span className="notif-item-time">
+                          {new Date(n.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
