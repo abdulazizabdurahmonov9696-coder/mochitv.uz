@@ -4,6 +4,8 @@ import { Heart, LogOut, Lock, Loader, Eye, Play, Youtube, X, Search, Calendar, E
 import { FaTelegramPlane } from "react-icons/fa";
 import { IoBookmarkOutline, IoBookmark } from "react-icons/io5";
 import { LuInstagram } from "react-icons/lu";
+import { CgProfile } from "react-icons/cg";
+import { AiFillFire } from "react-icons/ai";
 import Head from "next/head";
 import { createClient } from '@supabase/supabase-js';
 import MobileNavbar from '../components/MobileNavbar';
@@ -1078,7 +1080,6 @@ const goToAnime = (anime) => {
           padding: 8px 16px;
           border-radius: 10px;
           border: 1px solid rgba(255,255,255,0.1);
-          background: rgba(255,255,255,0.04);
           cursor: pointer;
           text-decoration: none;
           transition: all 0.25s;
@@ -1156,8 +1157,8 @@ const goToAnime = (anime) => {
           position: relative;
         }
         .avatar-header-btn {
-          width: 38px;
-          height: 38px;
+          width: 42px;
+          height: 42px;
           border-radius: 50%;
           overflow: hidden;
           cursor: pointer;
@@ -1166,10 +1167,7 @@ const goToAnime = (anime) => {
           background: #111;
           flex-shrink: 0;
         }
-        .avatar-header-btn:hover {
-          border-color: #d946ef;
-          transform: scale(1.07);
-        }
+      
         .avatar-header-btn img {
           width: 100%; height: 100%; object-fit: cover; display: block;
         }
@@ -1224,7 +1222,7 @@ const goToAnime = (anime) => {
         .avatar-dropdown-item {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 5px;
           padding: 10px 12px;
           border-radius: 10px;
           cursor: pointer;
@@ -2061,7 +2059,7 @@ const goToAnime = (anime) => {
           .carousel-genres { gap: 6px; margin-bottom: 12px; }
           .genre-badge { padding: 4px 10px; font-size: 11px; }
           .carousel-description { font-size: 12px; }
-          .site-header { flex-wrap: wrap; padding: 17px 10px; }
+          .site-header { flex-wrap: wrap; padding: 17px 20px; }
           .mobile-hide { display: none !important; }
           .header-logo { height: 32px; }
           .footer-content { gap: 20px; }
@@ -2088,7 +2086,7 @@ const goToAnime = (anime) => {
           <div className="header-right">
             {/* ✅ Lavhalar link — faqat desktop (≥1200px) da ko'rinadi */}
             <a href="/wall" className="lavhalar-link">
-              🎨 Lavhalar
+              <AiFillFire /> Lavhalar
             </a>
 
             <button className="search-btn" onClick={showSearchModal}>
@@ -2129,7 +2127,7 @@ const goToAnime = (anime) => {
                         className="avatar-dropdown-item"
                         onClick={() => { setShowAvatarMenu(false); goToProfile(); }}
                       >
-                        👤 &nbsp; Profil
+                        <CgProfile />&nbsp;Profil
                       </button>
 
                       <div className="avatar-dropdown-divider" />
