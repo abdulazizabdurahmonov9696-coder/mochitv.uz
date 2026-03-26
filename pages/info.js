@@ -12,7 +12,7 @@ export default function InfoPage() {
     },
     contact: {
       title: 'Aloqa',
-      content: 'Agar sizda savollar yoki takliflar bo\'lsa, bizga quyidagi yo\'llar bilan bog\'lanishingiz mumkin:\n\n Telefon: +998 (90) 348-41-40\n💬 Telegram: @mochitv_uz'
+      content: 'Agar sizda savollar yoki takliflar bo\'lsa, bizga quyidagi yo\'llar bilan bog\'lanishingiz mumkin:\n\n Telefon: +998 (90) XXX XX XX\n💬 Telegram: @mochitv_uz'
     },
     report: {
       title: 'Muammo Xabar Qilish',
