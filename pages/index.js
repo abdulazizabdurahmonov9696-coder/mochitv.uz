@@ -401,6 +401,9 @@ export default function Home() {
   const [tgAuthLoading, setTgAuthLoading] = useState(false);
   const[tgAuthError, setTgAuthError] = useState('');
 
+  // ✅ YANGI: Telegram kanal detail modal
+  const [showTgDetailModal, setShowTgDetailModal] = useState(false);
+
   const [carouselData, setCarouselData] = useState([]);
   const [animeCards, setAnimeCards] = useState([]);
   const[newsData, setNewsData] = useState([]); 
@@ -1252,33 +1255,33 @@ const goToAnime = (anime) => {
           margin: 4px 0;
         }
 
-        /* ✅ NOTIFICATION MODAL */
-        @keyframes notifSlideIn {
-          from { opacity: 0; transform: translateY(-12px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
+        /* ✅ NOTIFICATION MODAL — EKRAN MARKAZIDA */
+        @keyframes notifFadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to   { opacity: 1; transform: scale(1); }
         }
         .notif-modal-overlay {
           position: fixed; inset: 0;
-          background: rgba(0,0,0,0.5);
-          backdrop-filter: blur(6px);
+          background: rgba(0,0,0,0.65);
+          backdrop-filter: blur(8px);
           z-index: 99998;
           display: flex;
-          align-items: flex-start;
-          justify-content: flex-end;
-          padding: 72px 20px 20px;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
         }
         .notif-modal-box {
           width: 100%;
-          max-width: 380px;
-          max-height: 70vh;
+          max-width: 420px;
+          max-height: 75vh;
           background: rgba(14,16,22,0.98);
           border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 20px;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+          border-radius: 24px;
+          box-shadow: 0 30px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04);
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          animation: notifSlideIn 0.25s ease;
+          animation: notifFadeIn 0.25s ease;
         }
         .notif-modal-header {
           display: flex;
@@ -1787,6 +1790,380 @@ const goToAnime = (anime) => {
           text-overflow: ellipsis;
         }
 
+        /* ======================================= */
+        /* ✅ TELEGRAM KANAL BANNER                */
+        /* ======================================= */
+        @keyframes tgBannerPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(42, 171, 238, 0.25); }
+          50% { box-shadow: 0 0 40px 8px rgba(42, 171, 238, 0.12); }
+        }
+        @keyframes tgShimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes tgFloat {
+          0%, 100% { transform: translateY(0px) rotate(-2deg); }
+          50% { transform: translateY(-8px) rotate(2deg); }
+        }
+        @keyframes tgStar {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.3); }
+        }
+
+        .tg-banner-wrapper {
+          max-width: 1400px;
+          margin: 0 auto 44px;
+          padding: 0 20px;
+        }
+        .tg-banner {
+          position: relative;
+          border-radius: 24px;
+          overflow: hidden;
+          padding: 0;
+          cursor: default;
+          animation: tgBannerPulse 4s ease-in-out infinite;
+          border: 1px solid rgba(42,171,238,0.25);
+        }
+        /* Arkaplan rasmi va effektlar */
+        .tg-banner-bg {
+          position: absolute;
+          inset: 0;
+          background:
+            url('https://images.unsplash.com/photo-1608889476518-738c9b1dcb40?w=1400&q=80&fit=crop') center/cover no-repeat;
+          z-index: 0;
+        }
+        .tg-banner-bg::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(135deg,
+              rgba(5, 8, 18, 0.92) 0%,
+              rgba(8, 20, 45, 0.88) 40%,
+              rgba(10, 30, 60, 0.82) 70%,
+              rgba(5, 8, 18, 0.95) 100%
+            );
+        }
+        /* Mavi nurli effekt */
+        .tg-banner-glow {
+          position: absolute;
+          top: -60px; left: -60px;
+          width: 300px; height: 300px;
+          background: radial-gradient(circle, rgba(42,171,238,0.18) 0%, transparent 70%);
+          z-index: 1;
+          pointer-events: none;
+        }
+        .tg-banner-glow2 {
+          position: absolute;
+          bottom: -80px; right: -40px;
+          width: 350px; height: 350px;
+          background: radial-gradient(circle, rgba(100,60,255,0.12) 0%, transparent 70%);
+          z-index: 1;
+          pointer-events: none;
+        }
+        /* Yulduzcha dekorlar */
+        .tg-star {
+          position: absolute;
+          width: 5px; height: 5px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.6);
+          z-index: 2;
+          pointer-events: none;
+        }
+        .tg-star:nth-child(1) { top: 18%; left: 8%; animation: tgStar 2.1s ease-in-out infinite; }
+        .tg-star:nth-child(2) { top: 60%; left: 15%; animation: tgStar 3.4s ease-in-out infinite 0.5s; width: 3px; height: 3px; }
+        .tg-star:nth-child(3) { top: 30%; left: 40%; animation: tgStar 2.7s ease-in-out infinite 1s; width: 4px; height: 4px; }
+        .tg-star:nth-child(4) { top: 75%; left: 65%; animation: tgStar 2s ease-in-out infinite 0.3s; width: 3px; height: 3px; }
+        .tg-star:nth-child(5) { top: 20%; left: 82%; animation: tgStar 3s ease-in-out infinite 0.8s; }
+
+        /* Telegram icon floating */
+        .tg-float-icon {
+          position: absolute;
+          right: 5%;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 2;
+          pointer-events: none;
+          animation: tgFloat 5s ease-in-out infinite;
+          opacity: 0.08;
+          font-size: 240px;
+          line-height: 1;
+          color: #2aabee;
+        }
+
+        /* Asosiy kontent */
+        .tg-banner-inner {
+          position: relative;
+          z-index: 3;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          padding: 36px 40px;
+          gap: 0;
+        }
+        .tg-banner-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          background: rgba(239,68,68,0.18);
+          border: 1px solid rgba(239,68,68,0.4);
+          color: #fca5a5;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 1.2px;
+          text-transform: uppercase;
+          padding: 5px 14px;
+          border-radius: 50px;
+          margin-bottom: 18px;
+        }
+        .tg-badge-dot {
+          width: 7px; height: 7px;
+          border-radius: 50%;
+          background: #ef4444;
+          animation: tgStar 1.2s ease-in-out infinite;
+          flex-shrink: 0;
+        }
+        .tg-banner-title {
+          font-size: 26px;
+          font-weight: 800;
+          color: #fff;
+          line-height: 1.25;
+          margin-bottom: 10px;
+          max-width: 680px;
+        }
+        .tg-banner-title span {
+          background: linear-gradient(90deg, #2aabee, #7dd3fc, #2aabee);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: tgShimmer 3s linear infinite;
+        }
+        .tg-banner-desc {
+          font-size: 15px;
+          color: rgba(255,255,255,0.65);
+          line-height: 1.7;
+          margin-bottom: 28px;
+          max-width: 600px;
+        }
+        .tg-banner-desc b {
+          color: rgba(255,255,255,0.9);
+          font-weight: 600;
+        }
+        .tg-banner-btns {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .tg-btn-primary {
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          background: linear-gradient(135deg, #2aabee 0%, #1a8bc4 100%);
+          color: #fff;
+          border: none;
+          padding: 13px 26px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          text-decoration: none;
+          transition: all 0.3s;
+          box-shadow: 0 4px 20px rgba(42,171,238,0.3);
+          white-space: nowrap;
+        }
+        .tg-btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 28px rgba(42,171,238,0.45);
+          background: linear-gradient(135deg, #38bdf8 0%, #2aabee 100%);
+        }
+        .tg-btn-secondary {
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          background: rgba(255,255,255,0.06);
+          color: rgba(255,255,255,0.85);
+          border: 1px solid rgba(255,255,255,0.15);
+          padding: 13px 26px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+          white-space: nowrap;
+          backdrop-filter: blur(8px);
+        }
+        .tg-btn-secondary:hover {
+          background: rgba(255,255,255,0.12);
+          border-color: rgba(255,255,255,0.3);
+          transform: translateY(-2px);
+          color: #fff;
+        }
+
+        /* ======================================= */
+        /* ✅ BATAFSIL O'QISH MODAL                */
+        /* ======================================= */
+        @keyframes tgDetailIn {
+          from { opacity: 0; transform: scale(0.94) translateY(20px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .tg-detail-overlay {
+          position: fixed; inset: 0;
+          background: rgba(0,0,0,0.75);
+          backdrop-filter: blur(12px);
+          z-index: 99999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+        .tg-detail-modal {
+          width: 100%;
+          max-width: 520px;
+          background: rgba(10, 14, 24, 0.98);
+          border: 1px solid rgba(42,171,238,0.2);
+          border-radius: 28px;
+          overflow: hidden;
+          box-shadow:
+            0 0 0 1px rgba(255,255,255,0.04),
+            0 40px 100px rgba(0,0,0,0.8),
+            0 0 60px rgba(42,171,238,0.08);
+          animation: tgDetailIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          position: relative;
+        }
+        /* Modal arkaplan */
+        .tg-detail-modal-bg {
+          position: absolute;
+          inset: 0;
+          background:
+            url('https://images.unsplash.com/photo-1608889476518-738c9b1dcb40?w=800&q=60&fit=crop') center/cover no-repeat;
+          opacity: 0.06;
+          pointer-events: none;
+        }
+        .tg-detail-modal-bg-glow {
+          position: absolute;
+          top: -100px; left: -100px;
+          width: 400px; height: 400px;
+          background: radial-gradient(circle, rgba(42,171,238,0.12) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        .tg-detail-modal-header {
+          position: relative;
+          z-index: 2;
+          padding: 32px 32px 24px;
+          border-bottom: 1px solid rgba(255,255,255,0.07);
+          display: flex;
+          align-items: flex-start;
+          gap: 18px;
+        }
+        .tg-detail-modal-icon {
+          width: 56px; height: 56px;
+          border-radius: 16px;
+          background: linear-gradient(135deg, rgba(42,171,238,0.25), rgba(42,171,238,0.08));
+          border: 1px solid rgba(42,171,238,0.3);
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+          font-size: 26px;
+          color: #2aabee;
+        }
+        .tg-detail-modal-title-block { flex: 1; }
+        .tg-detail-modal-eyebrow {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+          color: #2aabee;
+          margin-bottom: 6px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .tg-detail-modal-h1 {
+          font-size: 20px;
+          font-weight: 800;
+          color: #fff;
+          line-height: 1.3;
+        }
+        .tg-detail-modal-close {
+          position: absolute;
+          top: 20px; right: 20px;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.1);
+          color: rgba(255,255,255,0.5);
+          width: 34px; height: 34px;
+          border-radius: 10px;
+          cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          transition: all 0.2s;
+          z-index: 3;
+        }
+        .tg-detail-modal-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+        .tg-detail-modal-body {
+          position: relative;
+          z-index: 2;
+          padding: 28px 32px 32px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .tg-detail-section {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 16px;
+          padding: 18px 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .tg-detail-section-label {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.35);
+          margin-bottom: 2px;
+        }
+        .tg-detail-section-text {
+          font-size: 14px;
+          color: rgba(255,255,255,0.8);
+          line-height: 1.7;
+        }
+        .tg-detail-section-text b {
+          color: #fff;
+          font-weight: 600;
+        }
+        .tg-detail-highlight {
+          background: linear-gradient(135deg, rgba(42,171,238,0.1), rgba(42,171,238,0.04));
+          border: 1px solid rgba(42,171,238,0.2);
+        }
+        .tg-detail-handle {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          background: rgba(42,171,238,0.15);
+          border: 1px solid rgba(42,171,238,0.3);
+          color: #7dd3fc;
+          font-size: 15px;
+          font-weight: 700;
+          padding: 7px 16px;
+          border-radius: 50px;
+          margin-top: 4px;
+          width: fit-content;
+        }
+        .tg-detail-modal-actions {
+          display: flex;
+          gap: 10px;
+        }
+        @media (max-width: 600px) {
+          .tg-banner-inner { padding: 24px 20px; }
+          .tg-banner-title { font-size: 20px; }
+          .tg-banner-desc { font-size: 13px; }
+          .tg-float-icon { font-size: 140px; opacity: 0.05; }
+          .tg-detail-modal-header { padding: 24px 20px 18px; }
+          .tg-detail-modal-body { padding: 20px 20px 24px; }
+          .tg-detail-modal-actions { flex-direction: column; }
+          .tg-btn-primary, .tg-btn-secondary { justify-content: center; }
+        }
+
         .footer {
           border-top: 1px solid rgba(255, 255, 255, 0.1);
           padding: 40px 20px;
@@ -2035,8 +2412,6 @@ const goToAnime = (anime) => {
           .horizontal-card { width: 150px; }
           .row-title { font-size: 20px; }
           .site-header { padding: 18px 20px; }
-          .notif-modal-box { max-width: 100%; border-radius: 20px 20px 0 0; }
-          .notif-modal-overlay { padding: 0; align-items: flex-end; }
         }
         @media (max-width: 768px) {
           .search-btn { display: none !important; }
@@ -2239,6 +2614,64 @@ const goToAnime = (anime) => {
           )}
         </div>
 
+        {/* ======================================= */}
+        {/* ✅ TELEGRAM KANAL BANNERI               */}
+        {/* ======================================= */}
+        <div className="tg-banner-wrapper">
+          <div className="tg-banner">
+            {/* Arkaplan */}
+            <div className="tg-banner-bg" />
+            <div className="tg-banner-glow" />
+            <div className="tg-banner-glow2" />
+            {/* Yulduzchalar */}
+            <div className="tg-star" />
+            <div className="tg-star" />
+            <div className="tg-star" />
+            <div className="tg-star" />
+            <div className="tg-star" />
+            {/* Floating TG icon */}
+            <div className="tg-float-icon">
+              <FaTelegramPlane />
+            </div>
+
+            <div className="tg-banner-inner">
+              <div className="tg-banner-badge">
+                <div className="tg-badge-dot" />
+                Muhim e'lon
+              </div>
+
+              <div className="tg-banner-title">
+                <span>@MochitvUz</span> rasmiy Telegram kanalimiz<br />
+                beixtiborlik sababli o'chirib yuborildi
+              </div>
+
+              <div className="tg-banner-desc">
+                Aziz foydalanuvchilar, afsuski rasmiy kanalimiz tasodifan o'chib ketdi.
+                Buning uchun <b>chuqur uzur so'raymiz</b>. Endi kanalimizni qayta tiklading —
+                yangi link orqali qo'shiling va yangiliklar, epizodlar, e'lonlardan xabardor bo'ling.
+              </div>
+
+              <div className="tg-banner-btns">
+                <a
+                  className="tg-btn-primary"
+                  href="https://t.me/MochitvUz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FaTelegramPlane size={17} />
+                  Kanalni Ko'rish
+                </a>
+                <button
+                  className="tg-btn-secondary"
+                  onClick={() => setShowTgDetailModal(true)}
+                >
+                  📄 Batafsil o'qish
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Admin Panel Button */}
         {isAdmin && (
           <div className="admin-section">
@@ -2406,7 +2839,7 @@ const goToAnime = (anime) => {
           </div>
         )}
 
-        {/* ✅ NOTIFICATION MODAL */}
+        {/* ✅ NOTIFICATION MODAL — EKRAN MARKAZIDA */}
         {showNotifModal && (
           <div className="notif-modal-overlay" onClick={() => setShowNotifModal(false)}>
             <div className="notif-modal-box" onClick={e => e.stopPropagation()}>
@@ -2441,6 +2874,94 @@ const goToAnime = (anime) => {
                     </div>
                   ))
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ======================================= */}
+        {/* ✅ BATAFSIL O'QISH MODAL                */}
+        {/* ======================================= */}
+        {showTgDetailModal && (
+          <div className="tg-detail-overlay" onClick={() => setShowTgDetailModal(false)}>
+            <div className="tg-detail-modal" onClick={e => e.stopPropagation()}>
+              <div className="tg-detail-modal-bg" />
+              <div className="tg-detail-modal-bg-glow" />
+
+              <button className="tg-detail-modal-close" onClick={() => setShowTgDetailModal(false)}>
+                <X size={16} />
+              </button>
+
+              <div className="tg-detail-modal-header">
+                <div className="tg-detail-modal-icon">
+                  <FaTelegramPlane size={26} />
+                </div>
+                <div className="tg-detail-modal-title-block">
+                  <div className="tg-detail-modal-eyebrow">
+                    <span style={{
+                      width: 7, height: 7, borderRadius: '50%',
+                      background: '#ef4444', display: 'inline-block',
+                      animation: 'tgStar 1.2s ease-in-out infinite'
+                    }} />
+                    Rasmiy e'lon
+                  </div>
+                  <div className="tg-detail-modal-h1">
+                    Kanal haqida batafsil ma'lumot
+                  </div>
+                </div>
+              </div>
+
+              <div className="tg-detail-modal-body">
+                <div className="tg-detail-section">
+                  <div className="tg-detail-section-label">Nima bo'ldi?</div>
+                  <div className="tg-detail-section-text">
+                    Afsuski, <b>@MochitvUz</b> rasmiy Telegram kanalimiz beixtiborlik va texnik
+                    xatolik sababli tasodifan o'chib ketdi. Bu holat uchun barcha
+                    foydalanuvchilarimizdan <b>chuqur uzur so'raymiz</b>.
+                  </div>
+                </div>
+
+                <div className="tg-detail-section tg-detail-highlight">
+                  <div className="tg-detail-section-label">Yangi kanal</div>
+                  <div className="tg-detail-section-text">
+                    Kanalimiz qayta tiklandi va endi to'liq ishlayapti. Yangi epizodlar,
+                    e'lonlar va yangiliklar uchun quyidagi kanalga qo'shiling:
+                  </div>
+                  <div className="tg-detail-handle">
+                    <FaTelegramPlane size={15} />
+                    @MochitvUz
+                  </div>
+                </div>
+
+                <div className="tg-detail-section">
+                  <div className="tg-detail-section-label">Nima topasiz kanalda?</div>
+                  <div className="tg-detail-section-text">
+                    📢 Yangi epizod chiqishi haqida birinchi xabar olasiz<br />
+                    🎬 Eng yangi anime tavsiyalari va ko'rsatmalar<br />
+                    🏆 Haftalik top animelar va reytinglar<br />
+                    💬 Jamoa muhokama va saylovlari
+                  </div>
+                </div>
+
+                <div className="tg-detail-modal-actions">
+                  <a
+                    className="tg-btn-primary"
+                    href="https://t.me/MochitvUz"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ flex: 1, justifyContent: 'center' }}
+                  >
+                    <FaTelegramPlane size={17} />
+                    Kanalni Ko'rish
+                  </a>
+                  <button
+                    className="tg-btn-secondary"
+                    onClick={() => setShowTgDetailModal(false)}
+                    style={{ flex: 1, justifyContent: 'center' }}
+                  >
+                    Yopish
+                  </button>
+                </div>
               </div>
             </div>
           </div>
