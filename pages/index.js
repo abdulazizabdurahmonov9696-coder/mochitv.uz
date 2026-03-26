@@ -2627,12 +2627,12 @@ const goToAnime = (anime) => {
 
               <div className="tg-banner-title">
                 <span>@MochitvUz</span> rasmiy Telegram kanalimiz<br />
-                beixtiborlik sababli o'chirib yuborildi
+                Tasodifdan o'chib Ketib qoldi
               </div>
 
               <div className="tg-banner-desc">
                 Aziz foydalanuvchilar, afsuski rasmiy kanalimiz tasodifan o'chib ketdi.
-                Buning uchun <b>chuqur uzur so'raymiz</b>. Endi kanalimizni qayta tiklading —
+                Buning uchun <b>chuqur uzur so'raymiz</b>. Endi kanalimizni qayta tikladik -
                 yangi link orqali qo'shiling va yangiliklar, epizodlar, e'lonlardan xabardor bo'ling.
               </div>
 
