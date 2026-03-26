@@ -402,7 +402,6 @@ export default function Home() {
   const[tgAuthError, setTgAuthError] = useState('');
 
   // ✅ YANGI: Telegram kanal detail modal
-  const [showTgDetailModal, setShowTgDetailModal] = useState(false);
 
   const [carouselData, setCarouselData] = useState([]);
   const [animeCards, setAnimeCards] = useState([]);
@@ -1999,23 +1998,9 @@ const goToAnime = (anime) => {
           color: #fff;
         }
 
-        /* ======================================= */
-        /* ✅ BATAFSIL O'QISH MODAL                */
-        /* ======================================= */
-        @keyframes tgDetailIn {
-          from { opacity: 0; transform: scale(0.94) translateY(20px); }
-          to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .tg-detail-overlay {
-          position: fixed; inset: 0;
-          background: rgba(0,0,0,0.75);
-          backdrop-filter: blur(12px);
-          z-index: 99999;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-        }
+       
+
+     
         .tg-detail-modal {
           width: 100%;
           max-width: 520px;
@@ -2661,12 +2646,7 @@ const goToAnime = (anime) => {
                   <FaTelegramPlane size={17} />
                   Kanalni Ko'rish
                 </a>
-                <button
-                  className="tg-btn-secondary"
-                  onClick={() => setShowTgDetailModal(true)}
-                >
-                  📄 Batafsil o'qish
-                </button>
+             
               </div>
             </div>
           </div>
@@ -2874,94 +2854,6 @@ const goToAnime = (anime) => {
                     </div>
                   ))
                 )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ======================================= */}
-        {/* ✅ BATAFSIL O'QISH MODAL                */}
-        {/* ======================================= */}
-        {showTgDetailModal && (
-          <div className="tg-detail-overlay" onClick={() => setShowTgDetailModal(false)}>
-            <div className="tg-detail-modal" onClick={e => e.stopPropagation()}>
-              <div className="tg-detail-modal-bg" />
-              <div className="tg-detail-modal-bg-glow" />
-
-              <button className="tg-detail-modal-close" onClick={() => setShowTgDetailModal(false)}>
-                <X size={16} />
-              </button>
-
-              <div className="tg-detail-modal-header">
-                <div className="tg-detail-modal-icon">
-                  <FaTelegramPlane size={26} />
-                </div>
-                <div className="tg-detail-modal-title-block">
-                  <div className="tg-detail-modal-eyebrow">
-                    <span style={{
-                      width: 7, height: 7, borderRadius: '50%',
-                      background: '#ef4444', display: 'inline-block',
-                      animation: 'tgStar 1.2s ease-in-out infinite'
-                    }} />
-                    Rasmiy e'lon
-                  </div>
-                  <div className="tg-detail-modal-h1">
-                    Kanal haqida batafsil ma'lumot
-                  </div>
-                </div>
-              </div>
-
-              <div className="tg-detail-modal-body">
-                <div className="tg-detail-section">
-                  <div className="tg-detail-section-label">Nima bo'ldi?</div>
-                  <div className="tg-detail-section-text">
-                    Afsuski, <b>@MochitvUz</b> rasmiy Telegram kanalimiz beixtiborlik va texnik
-                    xatolik sababli tasodifan o'chib ketdi. Bu holat uchun barcha
-                    foydalanuvchilarimizdan <b>chuqur uzur so'raymiz</b>.
-                  </div>
-                </div>
-
-                <div className="tg-detail-section tg-detail-highlight">
-                  <div className="tg-detail-section-label">Yangi kanal</div>
-                  <div className="tg-detail-section-text">
-                    Kanalimiz qayta tiklandi va endi to'liq ishlayapti. Yangi epizodlar,
-                    e'lonlar va yangiliklar uchun quyidagi kanalga qo'shiling:
-                  </div>
-                  <div className="tg-detail-handle">
-                    <FaTelegramPlane size={15} />
-                    @MochitvUz
-                  </div>
-                </div>
-
-                <div className="tg-detail-section">
-                  <div className="tg-detail-section-label">Nima topasiz kanalda?</div>
-                  <div className="tg-detail-section-text">
-                    📢 Yangi epizod chiqishi haqida birinchi xabar olasiz<br />
-                    🎬 Eng yangi anime tavsiyalari va ko'rsatmalar<br />
-                    🏆 Haftalik top animelar va reytinglar<br />
-                    💬 Jamoa muhokama va saylovlari
-                  </div>
-                </div>
-
-                <div className="tg-detail-modal-actions">
-                  <a
-                    className="tg-btn-primary"
-                    href="https://t.me/MochitvUz"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ flex: 1, justifyContent: 'center' }}
-                  >
-                    <FaTelegramPlane size={17} />
-                    Kanalni Ko'rish
-                  </a>
-                  <button
-                    className="tg-btn-secondary"
-                    onClick={() => setShowTgDetailModal(false)}
-                    style={{ flex: 1, justifyContent: 'center' }}
-                  >
-                    Yopish
-                  </button>
-                </div>
               </div>
             </div>
           </div>
