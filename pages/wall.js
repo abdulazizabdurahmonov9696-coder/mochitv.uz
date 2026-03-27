@@ -343,7 +343,7 @@ export default function Wallpapers() {
           .masonry-item:hover .img-overlay { opacity: 1; }
         }
 
-        @media (max-width: 600px) { .masonry-item { border-radius: 12px; min-height: 120px; } }
+        @media (max-width: 600px) { .masonry-item { border-radius: 12px; min-height: 90px; } }
 
         /* Rasmni o'z holicha (natural width/height) ko'rsatuvchi qism */
         .wall-img {
