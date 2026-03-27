@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
@@ -107,7 +107,7 @@ export default function UserProfile() {
   const [userAnimes, setUserAnimes] = useState([]);
   const [episodes, setEpisodes] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [approvedPayments, setApprovedPayments] = useState([]); // Yangi: tasdiqlangan to'lovlar
+  const [approvedPayments, setApprovedPayments] = useState([]);
   const [selectedAnime, setSelectedAnime] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -117,7 +117,7 @@ export default function UserProfile() {
   const [showPrePaymentModal, setShowPrePaymentModal] = useState(false); 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showNotifModal, setShowNotifModal] = useState(false);
-  const [showAddAnimeModal, setShowAddAnimeModal] = useState(false); // Yangi: Anime yuklash oynasi
+  const [showAddAnimeModal, setShowAddAnimeModal] = useState(false);
   const [modal, setModal] = useState({ show: false, type: '', message: '' });
 
   const [editUsername, setEditUsername] = useState('');
@@ -125,6 +125,11 @@ export default function UserProfile() {
   const [avatarFile, setAvatarFile] = useState(null);
   const [bannerFile, setBannerFile] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  // ✅ YANGI: Username tekshirish statelari
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState(null); // null | true | false
+  const usernameDebounceRef = useRef(null);
 
   // Yangi anime qo'shish statelari
   const [animeForm, setAnimeForm] = useState({ title: '', description: '', rating: '', episodes: '', genres: '' });
@@ -149,6 +154,58 @@ export default function UserProfile() {
     if (username && mounted) loadProfileData(username);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username, mounted]);
+
+  // ✅ YANGI: editUsername o'zgarganda debounce bilan tekshirish
+  useEffect(() => {
+    // Modal ochilmagan bo'lsa yoki o'z usernamesi bo'lsa tekshirma
+    if (!showEditModal || !profileUser) return;
+
+    const trimmed = editUsername.trim();
+
+    // Agar username o'zgarmagan bo'lsa — tekshirma, null qil
+    if (trimmed === profileUser.username) {
+      setUsernameAvailable(null);
+      setCheckingUsername(false);
+      if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current);
+      return;
+    }
+
+    // Bo'sh bo'lsa
+    if (!trimmed) {
+      setUsernameAvailable(null);
+      setCheckingUsername(false);
+      return;
+    }
+
+    // Debounce: 600ms kutib tekshir
+    setCheckingUsername(true);
+    setUsernameAvailable(null);
+    if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current);
+    usernameDebounceRef.current = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id')
+          .eq('username', trimmed)
+          .maybeSingle();
+
+        if (error) {
+          setUsernameAvailable(null);
+        } else {
+          // Agar data bo'lsa — band, yo'q bo'lsa — bo'sh
+          setUsernameAvailable(!data);
+        }
+      } catch {
+        setUsernameAvailable(null);
+      }
+      setCheckingUsername(false);
+    }, 600);
+
+    return () => {
+      if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editUsername, showEditModal]);
 
   const showNotification = (type, message) => {
     setModal({ show: true, type, message });
@@ -199,13 +256,11 @@ export default function UserProfile() {
       if (animes) setUserAnimes(animes);
 
       if (currentUser && currentUser.id === user.id) {
-        // Bildirishnomalarni olish
         try {
           const { data: notifs } = await supabase.from('notifications').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
           if (notifs) setNotifications(notifs);
         } catch (e) { console.warn('Notifications:', e.message); }
 
-        // Tasdiqlangan to'lovlarni olish (Kvota uchun)
         try {
           const { data: pays } = await supabase.from('payments').select('*').eq('user_id', user.id).eq('status', 'approved');
           if (pays) setApprovedPayments(pays);
@@ -251,13 +306,11 @@ export default function UserProfile() {
   const playlistPaymentsCount = approvedPayments.filter(p => p.payment_type === 'playlist').length;
   const availablePlaylistQuota = Math.max(0, (playlistPaymentsCount * PLAYLIST_PER_PAYMENT) - playlists.length);
 
-  // Tugma bosilganda ishlovchi mantiqlar
   const handleAddAnimeClick = () => {
     setPaymentType('anime');
     setShowPrePaymentModal(true);
   };
 
-  // ✅ O'ZGARTIRILDI: Reklama tugmasi — faqat soon modali ochadi
   const handleAddPlaylistClick = () => {
     setShowPrePaymentModal(true);
     setPaymentType('playlist');
@@ -325,13 +378,51 @@ export default function UserProfile() {
 
   const handleSaveProfile = async () => {
     if (!isOwnProfile) return;
+
+    const trimmedUsername = editUsername.trim();
+
+    // ✅ YANGI: Username bo'sh bo'lsa to'sish
+    if (!trimmedUsername) {
+      return showNotification('error', "Username bo'sh bo'lishi mumkin emas!");
+    }
+
+    // ✅ YANGI: Username o'zgargan bo'lsa va band bo'lsa to'sish
+    if (trimmedUsername !== profileUser.username) {
+      // Hali tekshirilmagan bo'lsa (debounce kutilmoqda) — kuting
+      if (checkingUsername) {
+        return showNotification('error', "Username tekshirilmoqda, biroz kuting...");
+      }
+      if (usernameAvailable === false) {
+        return showNotification('error', "Bu username band! Boshqa username tanlang.");
+      }
+      // Agar available null bo'lsa (noma'lum) — bazadan bir marta tekshir
+      if (usernameAvailable === null) {
+        setSaving(true);
+        try {
+          const { data: existing } = await supabase
+            .from('users')
+            .select('id')
+            .eq('username', trimmedUsername)
+            .maybeSingle();
+          if (existing) {
+            setSaving(false);
+            return showNotification('error', "Bu username band! Boshqa username tanlang.");
+          }
+        } catch {
+          setSaving(false);
+          return showNotification('error', "Tekshirishda xatolik yuz berdi. Qayta urinib ko'ring.");
+        }
+        setSaving(false);
+      }
+    }
+
     setSaving(true);
     try {
       let avatarUrl = profileUser.avatar_url;
       let bannerUrl = profileUser.banner_url;
       if (avatarFile) avatarUrl = await uploadToCatbox(avatarFile);
       if (bannerFile) bannerUrl = await uploadToCatbox(bannerFile);
-      const updates = { username: editUsername, bio: editBio, avatar_url: avatarUrl, banner_url: bannerUrl };
+      const updates = { username: trimmedUsername, bio: editBio, avatar_url: avatarUrl, banner_url: bannerUrl };
       const { error } = await supabase.from('users').update(updates).eq('id', profileUser.id);
       if (error) throw error;
       const updatedUser = { ...profileUser, ...updates };
@@ -340,7 +431,7 @@ export default function UserProfile() {
       localStorage.setItem('anime_user', JSON.stringify(updatedUser));
       setShowEditModal(false);
       showNotification('success', 'Profil saqlandi!');
-      if (username !== editUsername) router.push(`/profile/${editUsername}`);
+      if (username !== trimmedUsername) router.push(`/profile/${trimmedUsername}`);
     } catch (e) { showNotification('error', 'Xatolik: ' + e.message); }
     setSaving(false);
   };
@@ -359,7 +450,7 @@ export default function UserProfile() {
   };
 
   const handleLogout = () => { localStorage.removeItem('anime_user'); window.location.href = '/'; };
-const goToAnime = (anime) => { window.location.href = `/anime/${encodeURIComponent(anime.title.trim().replace(/\s+/g, '-'))}`; };
+  const goToAnime = (anime) => { window.location.href = `/anime/${encodeURIComponent(anime.title.trim().replace(/\s+/g, '-'))}`; };
   const isOwnProfile = currentUser && profileUser && currentUser.id === profileUser.id;
   const unreadNotifs = notifications.filter(n => !n.is_read).length;
 
@@ -384,7 +475,6 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
         .loader-spin { animation: spin 0.9s linear infinite; }
         * { -webkit-tap-highlight-color:transparent!important; outline:none!important; box-sizing:border-box; }
 
-        /* ✅ INDEX.JS dagidek ORQA FON */
         html, body { width: 100%; height: 100%; overflow-x: hidden; }
         body {
           background: #090b10;
@@ -472,6 +562,30 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
         
         .input { width:100%; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); padding:14px; border-radius:12px; color:#fff; margin-bottom:15px; font-size:15px; transition:border 0.3s; }
         .input:focus { border-color:#d946ef; }
+
+        /* ✅ YANGI: Username input wrapper */
+        .username-input-wrapper { position: relative; margin-bottom: 15px; }
+        .username-input-wrapper .input { margin-bottom: 0; padding-right: 44px; }
+        .username-status-icon {
+          position: absolute;
+          right: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+        }
+        .username-hint {
+          font-size: 12px;
+          margin-top: 6px;
+          padding-left: 2px;
+          font-weight: 500;
+          min-height: 18px;
+        }
+        .username-hint.available { color: #22c55e; }
+        .username-hint.taken { color: #ef4444; }
+        .username-hint.checking { color: rgba(255,255,255,0.45); }
         
         .warning-box { background:rgba(239,68,68,0.1); border-left:4px solid #ef4444; padding:15px; border-radius:8px; margin-bottom:20px; display:flex; gap:12px; align-items:flex-start; }
         .warning-text { font-size:13px; color:rgba(255,255,255,0.85); line-height:1.5; }
@@ -481,7 +595,6 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
         .notif-item.unread { border-left-color:#d946ef; background:rgba(217,70,239,0.05); }
         .notif-time { font-size:11px; color:#888; margin-top:8px; display:block; }
 
-        /* ✅ Soon tugma stili */
         .soon-btn {
           width: 100%;
           display: flex;
@@ -501,7 +614,6 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
 
         @media (max-width:768px) { .grid { grid-template-columns:repeat(2,1fr); } .banner-container { height:200px; } .username { font-size:26px; } }
 
-        /* ✅ SKELETON CSS */
         @keyframes skshine {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(100%); }
@@ -591,7 +703,6 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
         }
       `}</style>
 
-      {/* ✅ ORQA FON DIVLARI (index.js dagidek) */}
       <div className="bg-grid"></div>
       <div className="bg-vignette"></div>
 
@@ -601,7 +712,6 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
         </div>
       )}
 
-      {/* ✅ LOADER O'RNIGA SKELETON */}
       {loading ? (
         <ProfileSkeleton />
       ) : !profileUser ? (
@@ -632,7 +742,6 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
             {profileUser.bio && <p className="user-bio">{profileUser.bio}</p>}
             {isOwnProfile && (
               <div className="action-bar">
-                {/* ✅ O'ZGARTIRILDI: "Playlist qo'shish" → "Reklama qo'shish" */}
                 <button className="action-btn primary" onClick={handleAddPlaylistClick}><ListVideo size={16} /> Reklama qo'shish</button>
                 <button className="action-btn primary" onClick={handleAddAnimeClick}><Plus size={16} /> Anime qo'shish</button>
               </div>
@@ -669,15 +778,8 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
                   </div>
                 ) : (
                   favorites.map(anime => (
-                    <div
-                      key={anime.id}
-                      className="card"
-                      onClick={() => goToAnime(anime)}
-                    >
-                      <img
-                        src={anime.image_url || "/fallback.jpg"}
-                        alt={anime.title || "Anime"}
-                      />
+                    <div key={anime.id} className="card" onClick={() => goToAnime(anime)}>
+                      <img src={anime.image_url || "/fallback.jpg"} alt={anime.title || "Anime"} />
                       <div className="card-overlay">
                         <div className="card-title">{anime.title || "Nomsiz anime"}</div>
                       </div>
@@ -733,13 +835,60 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
         <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-header"><h2>Profil sozlamalari</h2><button className="close-btn" onClick={() => setShowEditModal(false)}><X size={18}/></button></div>
+            
             <label style={{fontSize:13,color:'#888',marginBottom:5,display:'block'}}>Username</label>
-            <input className="input" placeholder="Username" value={editUsername} onChange={e => setEditUsername(e.target.value)} />
-            <label style={{fontSize:13,color:'#888',marginBottom:5,display:'block'}}>Bio</label>
+            {/* ✅ YANGI: Username input + holat ko'rsatkich */}
+            <div className="username-input-wrapper">
+              <input
+                className="input"
+                placeholder="Username"
+                value={editUsername}
+                onChange={e => setEditUsername(e.target.value)}
+                style={{
+                  borderColor: editUsername.trim() === profileUser?.username
+                    ? 'rgba(255,255,255,0.1)'
+                    : usernameAvailable === true
+                      ? '#22c55e'
+                      : usernameAvailable === false
+                        ? '#ef4444'
+                        : 'rgba(255,255,255,0.1)'
+                }}
+              />
+              <div className="username-status-icon">
+                {editUsername.trim() !== profileUser?.username && (
+                  checkingUsername
+                    ? <Loader size={16} className="loader-spin" style={{color:'rgba(255,255,255,0.4)'}} />
+                    : usernameAvailable === true
+                      ? <Check size={16} style={{color:'#22c55e'}} />
+                      : usernameAvailable === false
+                        ? <X size={16} style={{color:'#ef4444'}} />
+                        : null
+                )}
+              </div>
+            </div>
+            {/* ✅ YANGI: Holat matni */}
+            {editUsername.trim() !== profileUser?.username && (
+              <div className={`username-hint ${checkingUsername ? 'checking' : usernameAvailable === true ? 'available' : usernameAvailable === false ? 'taken' : ''}`}>
+                {checkingUsername
+                  ? 'Tekshirilmoqda...'
+                  : usernameAvailable === true
+                    ? '✓ Bu username bo\'sh, ishlatishingiz mumkin!'
+                    : usernameAvailable === false
+                      ? '✗ Bu username band! Boshqa username tanlang.'
+                      : ''}
+              </div>
+            )}
+
+            <label style={{fontSize:13,color:'#888',marginBottom:5,display:'block',marginTop:15}}>Bio</label>
             <textarea className="input" placeholder="O'zingiz haqingizda" value={editBio} onChange={e => setEditBio(e.target.value)} style={{height:100,resize:'none'}} />
             <FileInput label="Avatar o'zgartirish" accept="image/*" onChange={e => setAvatarFile(e.target.files[0])} />
             <FileInput label="Banner o'zgartirish" accept="image/*" onChange={e => setBannerFile(e.target.files[0])} />
-            <button className="action-btn primary" style={{width:'100%',justifyContent:'center',marginTop:10,padding:14}} onClick={handleSaveProfile} disabled={saving}>
+            <button
+              className="action-btn primary"
+              style={{width:'100%',justifyContent:'center',marginTop:10,padding:14,opacity:(usernameAvailable===false || checkingUsername) ? 0.5 : 1}}
+              onClick={handleSaveProfile}
+              disabled={saving || usernameAvailable === false || checkingUsername}
+            >
               {saving ? 'Yuklanmoqda...' : 'Saqlash'}
             </button>
             <button className="action-btn" style={{width:'100%',justifyContent:'center',marginTop:12,color:'#ef4444',border:'none'}} onClick={handleLogout}>
@@ -749,7 +898,7 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
         </div>
       )}
 
-      {/* ANIME YUKLASH OYNASI (Faqat kvota bo'lsa chiqadi) */}
+      {/* ANIME YUKLASH OYNASI */}
       {showAddAnimeModal && (
         <div className="modal-overlay" onClick={() => setShowAddAnimeModal(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
@@ -800,12 +949,11 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
         </div>
       )}
 
-      {/* To'lovdan oldingi ma'lumot (Tushuntirish oynasi) */}
+      {/* To'lovdan oldingi ma'lumot */}
       {showPrePaymentModal && (
         <div className="modal-overlay" onClick={() => setShowPrePaymentModal(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              {/* ✅ O'ZGARTIRILDI: Sarlavhalar yangilandi */}
               <h2>{paymentType === 'anime' ? "Anime qo'shish xizmati" : "Reklama xizmati"}</h2>
               <button className="close-btn" onClick={() => setShowPrePaymentModal(false)}><X size={18}/></button>
             </div>
@@ -825,7 +973,6 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
               )}
             </div>
 
-            {/* ✅ O'ZGARTIRILDI: Ikkalasi ham "Tez kunda..." ko'rsatadi */}
             <div className="soon-btn">
               🕐 &nbsp; Tez kunda...
             </div>
@@ -833,7 +980,7 @@ const goToAnime = (anime) => { window.location.href = `/anime/${encodeURICompone
         </div>
       )}
 
-      {/* Asosiy To'lov oynasi (Chek yuborish) */}
+      {/* Asosiy To'lov oynasi */}
       {showPaymentModal && (
         <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
