@@ -356,7 +356,7 @@ export default function Wallpapers() {
           will-change: opacity, transform;
         }
         .wall-img.loaded { opacity: 1; }
-        @media (max-width: 600px) { .wall-img { border-radius: 12px; } }
+        @media (max-width: 600px) { .wall-img { border-radius: 12px; min-height:90px; } }
 
         .img-overlay {
           position: absolute; inset: 0;
