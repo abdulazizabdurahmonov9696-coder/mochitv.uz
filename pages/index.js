@@ -424,6 +424,12 @@ export default function Home() {
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [userLayout, setUserLayout] = useState('horizontal'); // 'horizontal' or 'grid'
+  
+  // ✅ GRID PAGINATION STATES - Initialize with safe default for SSR
+  const [displayedGridItems, setDisplayedGridItems] = useState(15);
+  const [isMountedForGrid, setIsMountedForGrid] = useState(false); // Hydration safety flag
+  
   const avatarMenuRef = useRef(null);
 
   const showModal = (type, message, onConfirm = null) => {
@@ -493,6 +499,7 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
+    setIsMountedForGrid(true); // ✅ Mark as mounted for hydration safety
     checkCurrentUser();
     loadData();
     checkIsMobile();
@@ -511,8 +518,25 @@ export default function Home() {
     }
   }, [carouselData]);
 
+  // ✅ Reset grid pagination when layout changes (only after hydration)
+  useEffect(() => {
+    if (isMountedForGrid && userLayout === 'grid') {
+      // Only update after initial render completes to avoid hydration mismatch
+      setDisplayedGridItems(getResponsiveLoadCount());
+    }
+  }, [userLayout, isMountedForGrid]);
+
   const checkIsMobile = () => {
     setIsMobile(window.innerWidth < 1200);
+  };
+
+  // ✅ Get responsive load count for grid pagination
+  const getResponsiveLoadCount = () => {
+    if (typeof window === 'undefined') return 15;
+    const width = window.innerWidth;
+    if (width < 768) return 14;        // Mobile
+    if (width < 1200) return 12;       // Tablet
+    return 15;                          // Desktop
   };
 
   const checkCurrentUser = async () => {
@@ -523,9 +547,14 @@ export default function Home() {
         setCurrentUser(userData);
         await loadUserFavorites(userData.id);
         await loadNotifications(userData.id);
+        await loadUserLayout(userData.id);
+      } else {
+        // User not logged in - use horizontal layout
+        setUserLayout('horizontal');
       }
     } catch (error) {
       console.error('User check error:', error);
+      setUserLayout('horizontal');
     }
   };
 
@@ -555,6 +584,25 @@ export default function Home() {
       if (data) setNotifications(data);
     } catch (e) {
       console.warn('Notifications load error:', e.message);
+    }
+  };
+
+  // ✅ YANGI: User layout preferenceni yuklash
+  const loadUserLayout = async (userId) => {
+    try {
+      const { data } = await supabase
+        .from('page_section')
+        .select('layout')
+        .eq('user_id', userId)
+        .single();
+      if (data && data.layout) {
+        setUserLayout(data.layout); // 'horizontal' or 'grid'
+      } else {
+        setUserLayout('horizontal'); // default
+      }
+    } catch (e) {
+      console.warn('Layout load error:', e.message);
+      setUserLayout('horizontal'); // default fallback
     }
   };
 
@@ -1049,6 +1097,40 @@ const goToAnime = (anime) => {
         }
         .horizontal-scroll-container::-webkit-scrollbar { height: 0px; background: transparent; }
         .horizontal-card { flex: 0 0 auto; width: 200px; }
+
+        /* ✅ GRID LAYOUT STYLES */
+        .grid-section {
+          margin-bottom: 40px;
+          padding: 0 20px;
+          max-width: 1400px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .grid-container {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 20px;
+          width: 100%;
+        }
+        .grid-card {
+          width: 100%;
+        }
+
+        /* Mobile responsive for grid */
+        @media (max-width: 1200px) {
+          .grid-container {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+        @media (max-width: 768px) {
+          .grid-container {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+          }
+          .grid-section {
+            padding: 0 12px;
+          }
+        }
 
         .card-image { opacity: 0; transition: opacity 0.5s ease; }
         .card-image.loaded { opacity: 1; }
@@ -1789,218 +1871,7 @@ const goToAnime = (anime) => {
           text-overflow: ellipsis;
         }
 
-        /* ======================================= */
-        /* ✅ TELEGRAM KANAL BANNER                */
-        /* ======================================= */
-        @keyframes tgBannerPulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(42, 171, 238, 0.25); }
-          50% { box-shadow: 0 0 40px 8px rgba(42, 171, 238, 0.12); }
-        }
-        @keyframes tgShimmer {
-          0% { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        @keyframes tgFloat {
-          0%, 100% { transform: translateY(0px) rotate(-2deg); }
-          50% { transform: translateY(-8px) rotate(2deg); }
-        }
-        @keyframes tgStar {
-          0%, 100% { opacity: 0.3; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.3); }
-        }
 
-        .tg-banner-wrapper {
-          max-width: 1400px;
-          margin: 0 auto 44px;
-          padding: 0 20px;
-        }
-        .tg-banner {
-          position: relative;
-          border-radius: 24px;
-          overflow: hidden;
-          padding: 0;
-          cursor: default;
-          animation: tgBannerPulse 4s ease-in-out infinite;
-          border: 1px solid rgba(42,171,238,0.25);
-        }
-        /* Arkaplan rasmi va effektlar */
-        .tg-banner-bg {
-          position: absolute;
-          inset: 0;
-          background:
-            url('https://images.unsplash.com/photo-1608889476518-738c9b1dcb40?w=1400&q=80&fit=crop') center/cover no-repeat;
-          z-index: 0;
-        }
-        .tg-banner-bg::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background:
-            linear-gradient(135deg,
-              rgba(5, 8, 18, 0.92) 0%,
-              rgba(8, 20, 45, 0.88) 40%,
-              rgba(10, 30, 60, 0.82) 70%,
-              rgba(5, 8, 18, 0.95) 100%
-            );
-        }
-        /* Mavi nurli effekt */
-        .tg-banner-glow {
-          position: absolute;
-          top: -60px; left: -60px;
-          width: 300px; height: 300px;
-          background: radial-gradient(circle, rgba(42,171,238,0.18) 0%, transparent 70%);
-          z-index: 1;
-          pointer-events: none;
-        }
-        .tg-banner-glow2 {
-          position: absolute;
-          bottom: -80px; right: -40px;
-          width: 350px; height: 350px;
-          background: radial-gradient(circle, rgba(100,60,255,0.12) 0%, transparent 70%);
-          z-index: 1;
-          pointer-events: none;
-        }
-        /* Yulduzcha dekorlar */
-        .tg-star {
-          position: absolute;
-          width: 5px; height: 5px;
-          border-radius: 50%;
-          background: rgba(255,255,255,0.6);
-          z-index: 2;
-          pointer-events: none;
-        }
-        .tg-star:nth-child(1) { top: 18%; left: 8%; animation: tgStar 2.1s ease-in-out infinite; }
-        .tg-star:nth-child(2) { top: 60%; left: 15%; animation: tgStar 3.4s ease-in-out infinite 0.5s; width: 3px; height: 3px; }
-        .tg-star:nth-child(3) { top: 30%; left: 40%; animation: tgStar 2.7s ease-in-out infinite 1s; width: 4px; height: 4px; }
-        .tg-star:nth-child(4) { top: 75%; left: 65%; animation: tgStar 2s ease-in-out infinite 0.3s; width: 3px; height: 3px; }
-        .tg-star:nth-child(5) { top: 20%; left: 82%; animation: tgStar 3s ease-in-out infinite 0.8s; }
-
-        /* Telegram icon floating */
-        .tg-float-icon {
-          position: absolute;
-          right: 5%;
-          top: 50%;
-          transform: translateY(-50%);
-          z-index: 2;
-          pointer-events: none;
-          animation: tgFloat 5s ease-in-out infinite;
-          opacity: 0.08;
-          font-size: 240px;
-          line-height: 1;
-          color: #2aabee;
-        }
-
-        /* Asosiy kontent */
-        .tg-banner-inner {
-          position: relative;
-          z-index: 3;
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          padding: 36px 40px;
-          gap: 0;
-        }
-        .tg-banner-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
-          background: rgba(239,68,68,0.18);
-          border: 1px solid rgba(239,68,68,0.4);
-          color: #fca5a5;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 1.2px;
-          text-transform: uppercase;
-          padding: 5px 14px;
-          border-radius: 50px;
-          margin-bottom: 18px;
-        }
-        .tg-badge-dot {
-          width: 7px; height: 7px;
-          border-radius: 50%;
-          background: #ef4444;
-          animation: tgStar 1.2s ease-in-out infinite;
-          flex-shrink: 0;
-        }
-        .tg-banner-title {
-          font-size: 26px;
-          font-weight: 800;
-          color: #fff;
-          line-height: 1.25;
-          margin-bottom: 10px;
-          max-width: 680px;
-        }
-        .tg-banner-title span {
-          background: linear-gradient(90deg, #2aabee, #7dd3fc, #2aabee);
-          background-size: 200% auto;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: tgShimmer 3s linear infinite;
-        }
-        .tg-banner-desc {
-          font-size: 15px;
-          color: rgba(255,255,255,0.65);
-          line-height: 1.7;
-          margin-bottom: 28px;
-          max-width: 600px;
-        }
-        .tg-banner-desc b {
-          color: rgba(255,255,255,0.9);
-          font-weight: 600;
-        }
-        .tg-banner-btns {
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-        .tg-btn-primary {
-          display: inline-flex;
-          align-items: center;
-          gap: 9px;
-          background: linear-gradient(135deg, #2aabee 0%, #1a8bc4 100%);
-          color: #fff;
-          border: none;
-          padding: 13px 26px;
-          border-radius: 12px;
-          font-size: 14px;
-          font-weight: 700;
-          cursor: pointer;
-          text-decoration: none;
-          transition: all 0.3s;
-          box-shadow: 0 4px 20px rgba(42,171,238,0.3);
-          white-space: nowrap;
-        }
-        .tg-btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 28px rgba(42,171,238,0.45);
-          background: linear-gradient(135deg, #38bdf8 0%, #2aabee 100%);
-        }
-        .tg-btn-secondary {
-          display: inline-flex;
-          align-items: center;
-          gap: 9px;
-          background: rgba(255,255,255,0.06);
-          color: rgba(255,255,255,0.85);
-          border: 1px solid rgba(255,255,255,0.15);
-          padding: 13px 26px;
-          border-radius: 12px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s;
-          white-space: nowrap;
-          backdrop-filter: blur(8px);
-        }
-        .tg-btn-secondary:hover {
-          background: rgba(255,255,255,0.12);
-          border-color: rgba(255,255,255,0.3);
-          transform: translateY(-2px);
-          color: #fff;
-        }
-
-       
-
-     
         .tg-detail-modal {
           width: 100%;
           max-width: 520px;
@@ -2599,59 +2470,6 @@ const goToAnime = (anime) => {
           )}
         </div>
 
-        {/* ======================================= */}
-        {/* ✅ TELEGRAM KANAL BANNERI               */}
-        {/* ======================================= */}
-        <div className="tg-banner-wrapper">
-          <div className="tg-banner">
-            {/* Arkaplan */}
-            <div className="tg-banner-bg" />
-            <div className="tg-banner-glow" />
-            <div className="tg-banner-glow2" />
-            {/* Yulduzchalar */}
-            <div className="tg-star" />
-            <div className="tg-star" />
-            <div className="tg-star" />
-            <div className="tg-star" />
-            <div className="tg-star" />
-            {/* Floating TG icon */}
-            <div className="tg-float-icon">
-              <FaTelegramPlane />
-            </div>
-
-            <div className="tg-banner-inner">
-              <div className="tg-banner-badge">
-                <div className="tg-badge-dot" />
-                Muhim e'lon
-              </div>
-
-              <div className="tg-banner-title">
-                <span>@MochitvUz</span> rasmiy Telegram kanalimiz<br />
-                Tasodifdan o'chib Ketib qoldi
-              </div>
-
-              <div className="tg-banner-desc">
-                Aziz foydalanuvchilar, afsuski rasmiy kanalimiz tasodifan o'chib ketdi.
-                Buning uchun <b>chuqur uzur so'raymiz</b>. Endi kanalimizni qayta tikladik -
-                yangi link orqali qo'shiling va yangiliklar, epizodlar, e'lonlardan xabardor bo'ling.
-              </div>
-
-              <div className="tg-banner-btns">
-                <a
-                  className="tg-btn-primary"
-                  href="https://t.me/MochitvUz"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <FaTelegramPlane size={17} />
-                  Kanalni Ko'rish
-                </a>
-             
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Admin Panel Button */}
         {isAdmin && (
           <div className="admin-section">
@@ -2679,7 +2497,65 @@ const goToAnime = (anime) => {
              </div>
           ) : animeCards.length === 0 ? (
             <div className="empty-state">Hali anime qo'shilmagan</div>
+          ) : userLayout === 'grid' ? (
+            (() => {
+              const allGridAnimes = [...row1, ...row2, ...row3, ...row4];
+              const displayedAnimes = allGridAnimes.slice(0, displayedGridItems);
+              const hasMore = allGridAnimes.length > displayedGridItems;
+              
+              return (
+                <>
+                  {displayedAnimes.length > 0 && (
+                    <div className="grid-section">
+                      {/* NO SECTION TITLES IN GRID MODE */}
+                      <div className="grid-container">
+                        {displayedAnimes.map((anime) => (
+                          <div key={anime.id} className="grid-card">
+                            <AnimeCard 
+                              anime={anime}
+                              allViews={allViews}
+                              favorites={favorites}
+                              toggleFavorite={toggleFavorite}
+                              goToAnime={goToAnime}
+                              isHorizontal={false}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* LOAD MORE BUTTON */}
+                      {hasMore && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 40, marginBottom: 40 }}>
+                          <button
+                            onClick={() => {
+                              const loadCount = getResponsiveLoadCount();
+                              setDisplayedGridItems(prev => prev + loadCount);
+                            }}
+                            style={{
+                              padding: '12px 32px',
+                              background: '#eab308',
+                              border: 'none',
+                              color: '#090b10',
+                              fontSize: '16px',
+                              fontWeight: '700',
+                              borderRadius: '12px',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s',
+                            }}
+                            onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                            onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                          >
+                            Ko'proq ko'rish
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              );
+            })()
           ) : (
+            // HORIZONTAL LAYOUT (DEFAULT)
             <>
               {/* ROW 1 */}
               <div className="horizontal-section">

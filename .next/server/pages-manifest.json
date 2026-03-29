@@ -2,8 +2,10 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/wall": "pages/wall.js",
-  "/profile/[username]": "pages/profile/[username].js",
+  "/": "pages/index.js",
   "/404": "pages/404.js",
-  "/": "pages/index.js"
+  "/profile/[username]": "pages/profile/[username].js",
+  "/search": "pages/search.js",
+  "/wall": "pages/wall.js",
+  "/api/get-wall": "pages/api/get-wall.js"
 }

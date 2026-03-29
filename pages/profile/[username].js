@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { 
   Heart, Loader, Check, X, 
   LogOut, Plus, Bell,
-  Play, ListVideo, Film, Pencil, AlertTriangle
+  Play, ListVideo, Film, Pencil, AlertTriangle, Settings, LayoutList, Grid3x3
 } from 'lucide-react';
 
 import MobileNavbar from '../../components/MobileNavbar';
@@ -118,6 +118,7 @@ export default function UserProfile() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [showAddAnimeModal, setShowAddAnimeModal] = useState(false);
+  const [showLayoutModal, setShowLayoutModal] = useState(false);
   const [modal, setModal] = useState({ show: false, type: '', message: '' });
 
   const [editUsername, setEditUsername] = useState('');
@@ -125,6 +126,8 @@ export default function UserProfile() {
   const [avatarFile, setAvatarFile] = useState(null);
   const [bannerFile, setBannerFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [userLayout, setUserLayout] = useState('horizontal'); // 'horizontal' or 'grid'
+  const [selectedLayout, setSelectedLayout] = useState('horizontal');
 
   // ✅ YANGI: Username tekshirish statelari
   const [checkingUsername, setCheckingUsername] = useState(false);
@@ -147,7 +150,12 @@ export default function UserProfile() {
   useEffect(() => {
     setMounted(true);
     const storedUser = localStorage.getItem('anime_user');
-    if (storedUser) setCurrentUser(JSON.parse(storedUser));
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      setCurrentUser(userData);
+      // ✅ YANGI: User layout preferenceni yuklash
+      loadUserLayoutPreference(userData.id);
+    }
   }, []);
 
   useEffect(() => {
@@ -210,6 +218,62 @@ export default function UserProfile() {
   const showNotification = (type, message) => {
     setModal({ show: true, type, message });
     setTimeout(() => setModal({ show: false, type: '', message: '' }), 4000);
+  };
+
+  // ✅ YANGI: User layout preferenceni yuklash
+  const loadUserLayoutPreference = async (userId) => {
+    try {
+      const { data } = await supabase
+        .from('page_section')
+        .select('layout')
+        .eq('user_id', userId)
+        .single();
+      if (data && data.layout) {
+        setUserLayout(data.layout); // 'horizontal' or 'grid'
+      } else {
+        setUserLayout('horizontal'); // default
+      }
+    } catch (e) {
+      console.warn('Layout load error:', e.message);
+      setUserLayout('horizontal'); // default fallback
+    }
+  };
+
+  // ✅ YANGI: Layout modal ochish
+  const handleOpenLayoutModal = () => {
+    setSelectedLayout(userLayout);
+    setShowLayoutModal(true);
+  };
+
+  // ✅ YANGI: Layout ni saqlash
+  const handleSaveLayout = async () => {
+    if (!currentUser) {
+      showNotification('error', 'Akkauntga kirilmagan');
+      return;
+    }
+
+    try {
+      // Databasega saqlash
+      const { error } = await supabase
+        .from('page_section')
+        .upsert({
+          user_id: currentUser.id,
+          layout: selectedLayout,
+          updated_at: new Date()
+        }, { onConflict: 'user_id' });
+
+      if (error) {
+        throw error;
+      }
+
+      // State ni yangilash
+      setUserLayout(selectedLayout);
+      setShowLayoutModal(false);
+      showNotification('success', 'Joylashuvi saqlandi');
+    } catch (error) {
+      console.error('Layout save error:', error);
+      showNotification('error', 'Xato yuz berdi');
+    }
   };
 
   const loadProfileData = async (targetUsername) => {
@@ -723,9 +787,14 @@ export default function UserProfile() {
             <div className="top-navbar">
               <div className="brand" onClick={() => router.push('/')}><span className="logo-text">Mochitv.Uz</span></div>
               {isOwnProfile && (
-                <div className="notif-bell" onClick={handleOpenNotifs}>
-                  <Bell size={26} />
-                  {unreadNotifs > 0 && <span className="notif-badge">{unreadNotifs}</span>}
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <button className="settings-btn-profile" onClick={handleOpenLayoutModal} title="Joylashuvi" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.75)', width: '40px', height: '40px', borderRadius: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.25s' }} onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.08)'} onMouseLeave={e => e.target.style.background = 'none'}>
+                    <Settings size={24} />
+                  </button>
+                  <div className="notif-bell" onClick={handleOpenNotifs}>
+                    <Bell size={26} />
+                    {unreadNotifs > 0 && <span className="notif-badge">{unreadNotifs}</span>}
+                  </div>
                 </div>
               )}
             </div>
@@ -1025,6 +1094,97 @@ export default function UserProfile() {
             <input className="input" placeholder="Nomi" value={episodeTitle} onChange={e => setEpisodeTitle(e.target.value)} />
             <FileInput label="Video fayl" accept="video/*" onChange={e => setEpisodeVideoFile(e.target.files[0])} />
             <button className="action-btn primary" style={{width:'100%',justifyContent:'center',padding:14,marginTop:5}} onClick={() => { setShowEpisodeModal(false); showNotification('success', 'Qism yuklandi'); }}>Yuklash</button>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ LAYOUT SETTINGS MODAL */}
+      {showLayoutModal && currentUser && (
+        <div className="modal-overlay" onClick={() => setShowLayoutModal(false)}>
+          <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '20px' }}>
+             
+              <h2 style={{ margin: 0 }}>Animelar joylashuvi</h2>
+              <button className="close-btn" onClick={() => setShowLayoutModal(false)}><X size={18}/></button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+              <div
+                onClick={() => setSelectedLayout('horizontal')}
+                style={{
+                  flex: 1,
+                  padding: '16px',
+                  border: selectedLayout === 'horizontal' ? '2px solid rgb(234, 179, 8)' : '2px solid rgba(255,255,255,0.1)',
+                  borderRadius: '12px',
+                  background: selectedLayout === 'horizontal' ? '' : 'rgba(255,255,255,0.02)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <LayoutList size={36} style={{ color: selectedLayout === 'horizontal' ? 'rgb(234, 179, 8)' : 'rgba(255,255,255,0.7)' }} />
+                <div style={{ fontSize: '13px', fontWeight: 600, color: selectedLayout === 'horizontal' ? 'rgb(234, 179, 8)' : 'rgba(255,255,255,0.6)' }}>Gorizontal</div>
+              </div>
+              <div
+                onClick={() => setSelectedLayout('grid')}
+                style={{
+                  flex: 1,
+                  padding: '16px',
+                  border: selectedLayout === 'grid' ? '2px solid rgb(234, 179, 8)' : '2px solid rgba(255,255,255,0.1)',
+                  borderRadius: '12px',
+                  background: selectedLayout === 'grid' ? '' : 'rgba(255,255,255,0.02)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Grid3x3 size={36} style={{ color: selectedLayout === 'grid' ? 'rgb(234, 179, 8)' : 'rgba(255,255,255,0.7)' }} />
+                <div style={{ fontSize: '13px', fontWeight: 600, color: selectedLayout === 'grid' ? 'rgb(234, 179, 8)' : 'rgba(255,255,255,0.6)' }}>Grid</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: 'rgba(255,255,255,0.06)',
+                  color: 'rgba(255,255,255,0.8)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onClick={() => setShowLayoutModal(false)}
+              >
+                Bekor qilish
+              </button>
+              <button 
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: 'rgb(234, 179, 8)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onClick={handleSaveLayout}
+              >
+                Saqlash
+              </button>
+            </div>
           </div>
         </div>
       )}
