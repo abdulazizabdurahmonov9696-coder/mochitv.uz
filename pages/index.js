@@ -816,7 +816,7 @@ export default function Home() {
         .watch-btn {
           display: inline-flex; align-items: center; gap: 10px;
           background: var(--accent); border: none; color: #fff;
-          padding: 14px 30px; border-radius: var(--radius-sm);
+          padding: 10px 30px; border-radius: var(--radius-sm);
           font-size: 15px; font-weight: 700; cursor: pointer;
           transition: all 0.25s; font-family: 'Outfit', sans-serif; letter-spacing: 0.01em;
         }
@@ -827,7 +827,7 @@ export default function Home() {
         }
         @keyframes floatPoster { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
         .slide-poster {
-          width: 260px; aspect-ratio: 2/3; object-fit: cover;
+          width: 270px; aspect-ratio: 2/3; object-fit: cover;
           border-radius: var(--radius-xl);
           box-shadow: 0 32px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08), 0 0 40px var(--accent-glow);
           animation: floatPoster 7s ease-in-out infinite;
@@ -1018,7 +1018,7 @@ export default function Home() {
           cursor: pointer; transition: all 0.25s; font-family: 'Outfit', sans-serif;
           letter-spacing: 0.02em;
         }
-        .load-more-btn button:hover { background: var(--accent); color: #fff; box-shadow: 0 4px 20px var(--accent-glow); transform: translateY(-2px); }
+        .load-more-btn button:active { background: var(--accent); color: #fff; box-shadow: 0 4px 20px var(--accent-glow); transform: translateY(-2px); }
 
         /* ── ADMIN ─────────────────────────────────────── */
         .admin-bar { max-width: 1320px; margin: 0 auto 32px; padding: 0 60px; display: flex; }
@@ -1229,7 +1229,7 @@ export default function Home() {
           .section-head { padding-right: 24px; }
           .h-scroll { padding-right: 24px; }
           .grid-section { padding: 0 30px; }
-          .admin-bar { padding: 0 30px; }
+          .admin-bar { padding: 0 100px; }
           .footer { padding: 40px 30px; }
           .carousel-skel { padding: 0 30px; }
         }
@@ -1242,7 +1242,7 @@ export default function Home() {
           .slide-text { position: absolute; bottom: 0; left: 0; right: 0; max-width: 100%; padding: 20px 24px 18px; justify-content: flex-end; }
           .slide-title { font-size: 28px; margin-bottom: 10px; }
           .slide-desc { -webkit-line-clamp: 2; font-size: 13px; margin-bottom: 14px; }
-          .watch-btn { position: absolute; top: 16px; right: 16px; padding: 9px 16px; font-size: 13px; margin-top: -80px; }
+          .watch-btn { position: absolute; top: 16px; right: 16px; padding: 5px 16px; font-size: 13px; margin-top: -80px; }
           .footer-grid { grid-template-columns: repeat(2,1fr); }
           .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
           .cskel-poster { display: none; }
