@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import Head from 'next/head';
-import { Search, Download, Share2, X, Check, Image as ImageIcon } from 'lucide-react';
+import { Search, Download, Share2, X, Check, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import MobileNavbar from '../components/MobileNavbar';
 
 function shuffleArray(arr) {
@@ -47,7 +47,6 @@ export default function Wallpapers() {
   const shuffledRef = useRef([]);
   const observerTarget = useRef(null);
 
-  // Client-side oynani o'lchash
   useEffect(() => {
     setColCount(getColCount());
     const onResize = () => setColCount(getColCount());
@@ -55,7 +54,6 @@ export default function Wallpapers() {
     return () => window.removeEventListener('resize', onResize);
   },[]);
 
-  // Modal ochiq qolganda scroll bloklanishining oldini olish uchun tozalash
   useEffect(() => {
     return () => {
       document.body.style.overflow = '';
@@ -125,7 +123,6 @@ export default function Wallpapers() {
     if (offset + 30 >= filteredWallpapers.length) setHasMore(false);
   },[hasMore, offset, filteredWallpapers, loading]);
 
-  // Infinite Scroll ulovchisi
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -133,7 +130,7 @@ export default function Wallpapers() {
           loadMore();
         }
       },
-      { rootMargin: '800px' } // Rasmlar ko'rinishidan biroz oldinroq yuklashni boshlaydi
+      { rootMargin: '800px' }
     );
 
     if (observerTarget.current) {
@@ -215,7 +212,6 @@ export default function Wallpapers() {
     setDownloading(false);
   };
 
-  // React qotmasligi uchun columnlarni memoization qildik
   const columns = useMemo(() => buildColumns(wallpapers, colCount), [wallpapers, colCount]);
 
   return (
@@ -232,14 +228,15 @@ export default function Wallpapers() {
         }
         html, body {
           width: 100%; min-height: 100%;
-          background: #090b10; color: #fff;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          background: #0d0d0f; color: #f0f0f2;
+          font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           overflow-x: hidden;
-          overscroll-behavior-y: auto; 
+          overscroll-behavior-y: auto;
         }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.6); border-radius: 10px; }
-        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(239,68,68,0.4); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #ef4444; }
+        ::-webkit-scrollbar-track { background: transparent; }
 
         .bg-grid {
           position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -252,41 +249,69 @@ export default function Wallpapers() {
         .bg-vignette {
           position: fixed; inset: 0; pointer-events: none; z-index: 0;
           background:
-            radial-gradient(circle at 50% 0%, rgba(212,175,55,0.05), transparent 60%),
-            linear-gradient(to top, #090b10 0%, transparent 100%);
+            radial-gradient(circle at 50% 0%, rgba(239,68,68,0.07), transparent 60%),
+            linear-gradient(to top, #0d0d0f 0%, transparent 100%);
         }
 
         .w-container { position: relative; z-index: 1; padding-bottom: 120px; }
 
+        /* ── HEADER ── */
         .w-header {
           position: sticky; top: 0; z-index: 100;
           padding: 11px 20px;
           display: flex; align-items: center; justify-content: center;
-          background: rgba(9,11,16,0.85);
+          gap: 12px;
+          background: rgba(13,13,15,0.85);
           backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
           border-bottom: 1px solid rgba(255,255,255,0.08);
         }
+
+        /* ← Back button — only on desktop */
+        .w-back-btn {
+          display: none;
+          align-items: center; gap: 6px;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
+          color: rgba(240,240,242,0.65);
+          padding: 8px 14px; border-radius: 8px;
+          font-size: 14px; font-weight: 500;
+          cursor: pointer; transition: all 0.2s;
+          white-space: nowrap; flex-shrink: 0;
+          font-family: 'Outfit', sans-serif;
+          text-decoration: none;
+        }
+        .w-back-btn:hover {
+          color: #f0f0f2;
+          background: rgba(239,68,68,0.1);
+          border-color: rgba(239,68,68,0.35);
+        }
+        @media (min-width: 769px) {
+          .w-back-btn { display: flex; }
+        }
+
         .w-search-bar {
           width: 100%; max-width: 400px;
           display: flex; align-items: center; gap: 8px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
           border-radius: 10px; padding: 0 12px;
           transition: border-color 0.25s, box-shadow 0.25s;
         }
         .w-search-bar:focus-within {
-          border-color: rgba(234,179,8,0.5);
-          box-shadow: 0 0 0 3px rgba(234,179,8,0.08);
+          border-color: rgba(239,68,68,0.5);
+          box-shadow: 0 0 0 3px rgba(239,68,68,0.08);
         }
-        .w-search-icon { color: rgba(255,255,255,0.3); flex-shrink: 0; }
+        .w-search-icon { color: rgba(240,240,242,0.35); flex-shrink: 0; }
         .w-search-input {
           flex: 1; background: transparent; border: none;
-          color: #fff; font-size: 13px; padding: 9px 0; outline: none;
+          color: #f0f0f2; font-size: 13px; padding: 9px 0; outline: none;
+          font-family: 'DM Sans', sans-serif;
         }
-        .w-search-input::placeholder { color: rgba(255,255,255,0.25); }
+        .w-search-input::placeholder { color: rgba(240,240,242,0.25); }
         .w-clear-btn {
           background: rgba(255,255,255,0.08); border: none;
-          color: rgba(255,255,255,0.5);
+          color: rgba(240,240,242,0.5);
           width: 20px; height: 20px; border-radius: 50%;
           cursor: pointer; display: flex; align-items: center; justify-content: center;
           transition: all 0.2s; flex-shrink: 0;
@@ -299,10 +324,10 @@ export default function Wallpapers() {
           display: flex; align-items: center;
         }
         .w-count-label {
-          font-size: 13px; color: rgba(255,255,255,0.35);
+          font-size: 13px; color: rgba(240,240,242,0.35);
           border-left: 4px solid #ef4444; padding-left: 10px;
         }
-        .w-count-label b { color: rgba(255,255,255,0.8); font-weight: 700; }
+        .w-count-label b { color: rgba(240,240,242,0.8); font-weight: 700; }
 
         .masonry-wrapper {
           display: flex; gap: 14px;
@@ -316,24 +341,20 @@ export default function Wallpapers() {
         @media (max-width: 900px) { .masonry-col { gap: 10px; } }
         @media (max-width: 600px) { .masonry-col { gap: 8px; } }
 
-        /* Rasm natural shaklda qolishi uchun optimizatsiya qilingan CSS */
         .masonry-item {
-          position: relative; 
-          border-radius: 16px; 
+          position: relative;
+          border-radius: 16px;
           overflow: hidden;
-          cursor: pointer; 
-          background: #0f1219;
-          /* Telefonda GPU orqali tez ishlashi uchun */
-          transform: translateZ(0); 
+          cursor: pointer;
+          background: #141416;
+          transform: translateZ(0);
           will-change: transform;
           box-shadow: 0 4px 16px rgba(0,0,0,0.35);
           width: 100%;
           transition: transform 0.3s, box-shadow 0.3s;
-          /* Rasm o'lchamini topgunicha nolga tushib ketmasligi uchun min balandlik */
-          min-height: 150px; 
+          min-height: 150px;
         }
-        
-        /* Telefonda qotmasligi uchun hoverni faqat kompyuterlarga yoqamiz */
+
         @media (hover: hover) and (pointer: fine) {
           .masonry-item:hover {
             transform: translateY(-3px) scale(1.01);
@@ -345,11 +366,10 @@ export default function Wallpapers() {
 
         @media (max-width: 600px) { .masonry-item { border-radius: 12px; min-height: 90px; } }
 
-        /* Rasmni o'z holicha (natural width/height) ko'rsatuvchi qism */
         .wall-img {
-          width: 100%; 
-          height: auto; /* ASL PROPORSION SAQLANADI */
-          display: block; 
+          width: 100%;
+          height: auto;
+          display: block;
           border-radius: 16px;
           opacity: 0;
           transition: opacity 0.45s ease, transform 0.4s ease;
@@ -360,7 +380,7 @@ export default function Wallpapers() {
 
         .img-overlay {
           position: absolute; inset: 0;
-          background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 55%);
+          background: linear-gradient(to top, rgba(13,13,15,0.9) 0%, transparent 55%);
           opacity: 0; transition: opacity 0.3s ease;
           display: flex; flex-direction: column; justify-content: flex-end;
           padding: 12px; pointer-events: none;
@@ -372,34 +392,35 @@ export default function Wallpapers() {
           pointer-events: auto;
         }
         .title-text {
-          color: #fff; font-weight: 600; font-size: 12px;
+          color: #f0f0f2; font-weight: 600; font-size: 12px;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%;
         }
         .icon-group { display: flex; gap: 8px; }
         .icon-btn {
           width: 34px; height: 34px; border-radius: 50%;
-          background: rgba(255,255,255,0.15); backdrop-filter: blur(8px);
+          background: rgba(255,255,255,0.12); backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           border: 1px solid rgba(255,255,255,0.1);
-          color: #fff; display: flex; align-items: center; justify-content: center;
+          color: #f0f0f2; display: flex; align-items: center; justify-content: center;
           cursor: pointer; transition: all 0.2s;
         }
         .icon-btn:active  { transform: scale(0.88); }
-        .icon-btn:hover   { background: rgba(59,130,246,0.7);  border-color: rgba(59,130,246,0.5); }
-        .icon-btn.dl:hover { background: rgba(16,185,129,0.7); border-color: rgba(16,185,129,0.5); }
+        .icon-btn:hover   { background: rgba(239,68,68,0.6); border-color: rgba(239,68,68,0.5); }
+        .icon-btn.dl:hover { background: rgba(34,197,94,0.6); border-color: rgba(34,197,94,0.5); }
 
         .skeleton-item {
           border-radius: 16px;
-          background: #0f1219;
+          background: #1a1a1e;
           animation: simplePulse 1.5s ease-in-out infinite;
           width: 100%;
         }
         @keyframes simplePulse {
           0%, 100% { opacity: 1; }
-          50%       { opacity: 0.5; }
+          50%       { opacity: 0.4; }
         }
 
         .w-empty {
-          text-align: center; color: rgba(255,255,255,0.3);
+          text-align: center; color: rgba(240,240,242,0.3);
           padding: 100px 20px;
         }
         .w-empty-icon {
@@ -407,26 +428,28 @@ export default function Wallpapers() {
           background: rgba(255,255,255,0.03);
           border: 1px solid rgba(255,255,255,0.07);
           display: flex; align-items: center; justify-content: center;
-          margin: 0 auto 18px; color: rgba(255,255,255,0.2);
+          margin: 0 auto 18px; color: rgba(240,240,242,0.2);
         }
         .w-empty p { font-size: 15px; }
 
+        /* ── MODAL ── */
         .modal-overlay {
           position: fixed; inset: 0;
-          background: rgba(0,0,0,0.9); z-index: 99999;
+          background: rgba(0,0,0,0.92); z-index: 99999;
           display: flex; align-items: center; justify-content: center;
           backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
           animation: fadeIn 0.2s ease-out; padding: 16px;
         }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .modal-close {
           position: fixed; top: 16px; right: 16px;
-          background: rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.07);
           border: 1px solid rgba(255,255,255,0.12);
           width: 44px; height: 44px; border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
-          cursor: pointer; color: white;
+          cursor: pointer; color: #f0f0f2;
           transition: background 0.2s, transform 0.3s; z-index: 10;
         }
         .modal-close:hover { background: rgba(239,68,68,0.25); transform: rotate(90deg); }
@@ -450,7 +473,7 @@ export default function Wallpapers() {
         }
 
         .modal-title {
-          margin-top: 14px; color: rgba(255,255,255,0.6); font-size: 13px;
+          margin-top: 14px; color: rgba(240,240,242,0.55); font-size: 13px;
           font-weight: 500; text-align: center; max-width: 90%;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
@@ -465,33 +488,35 @@ export default function Wallpapers() {
           font-weight: 700; font-size: 14px; cursor: pointer;
           display: flex; align-items: center; gap: 8px;
           transition: all 0.2s; min-width: 140px; justify-content: center;
+          font-family: 'Outfit', sans-serif;
         }
         .btn-share {
           background: rgba(255,255,255,0.07);
           border: 1px solid rgba(255,255,255,0.12);
-          color: rgba(255,255,255,0.85);
+          color: rgba(240,240,242,0.85);
         }
         .btn-share:hover {
-          background: rgba(255,255,255,0.12); color: #fff;
+          background: rgba(255,255,255,0.12); color: #f0f0f2;
           border-color: rgba(255,255,255,0.2);
           transform: translateY(-1px);
         }
         .btn-download {
-          background: #eab308; color: #000;
-          box-shadow: 0 6px 20px rgba(234,179,8,0.3);
+          background: #ef4444; color: #fff;
+          box-shadow: 0 6px 20px rgba(239,68,68,0.3);
         }
         .btn-download:hover {
-          background: #facc15;
-          box-shadow: 0 8px 28px rgba(234,179,8,0.45);
+          background: #f87171;
+          box-shadow: 0 8px 28px rgba(239,68,68,0.45);
           transform: translateY(-2px);
         }
         .btn-download:active { transform: scale(0.96); }
-        .btn-download:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-download:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         @media (max-width: 400px) {
           .btn-share, .btn-download { padding: 12px 20px; font-size: 13px; min-width: 120px; }
         }
 
+        /* ── TOAST ── */
         .toast {
           position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
           padding: 12px 22px; border-radius: 30px;
@@ -500,13 +525,12 @@ export default function Wallpapers() {
           animation: toastUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
           white-space: nowrap; max-width: 90vw;
         }
-        .toast-success { background: #10b981; box-shadow: 0 10px 30px rgba(16,185,129,0.4); }
-        .toast-info    { background: #eab308; color: #000; box-shadow: 0 10px 30px rgba(234,179,8,0.35); }
+        .toast-success { background: #22c55e; color: #fff; box-shadow: 0 10px 30px rgba(34,197,94,0.4); }
+        .toast-info    { background: #ef4444; color: #fff; box-shadow: 0 10px 30px rgba(239,68,68,0.35); }
         @keyframes toastUp { from { bottom: 60px; opacity: 0; } to { bottom: 100px; opacity: 1; } }
 
         @media (max-width: 600px) {
           .w-header { padding: 12px 14px; gap: 10px; }
-          .w-logo   { display: none; }
           .w-infobar { padding: 12px 14px 0; }
           ::-webkit-scrollbar { width: 0; }
         }
@@ -517,6 +541,12 @@ export default function Wallpapers() {
 
       <div className="w-container">
         <header className="w-header">
+          {/* ← Qaytish tugmasi — faqat desktop/laptop da ko'rinadi */}
+          <a href="/" className="w-back-btn">
+            <ArrowLeft size={16} />
+            Qaytish
+          </a>
+
           <div className="w-search-bar">
             <Search size={16} className="w-search-icon" />
             <input
@@ -580,7 +610,6 @@ export default function Wallpapers() {
                       <div
                         key={item.id}
                         className="masonry-item"
-                        /* Agar backenddan width/height ma'lumoti kelsa sakramasligi uchun silliq aspect ratio, bo'lmasa auto ishlaydi */
                         style={{ aspectRatio: item.width && item.height ? `${item.width} / ${item.height}` : 'auto' }}
                         onClick={() => openModal(item)}
                       >
@@ -621,7 +650,6 @@ export default function Wallpapers() {
               ))}
             </div>
 
-            {/* Pastki Trigger elementi: Infinite Scroll mukammal ishlashi uchun maxsus qism */}
             <div ref={observerTarget} style={{ height: '20px', width: '100%' }} />
           </>
         )}
