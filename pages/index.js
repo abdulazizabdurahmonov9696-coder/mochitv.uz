@@ -35,8 +35,18 @@ const dailyShuffle = (array) => {
   return shuffled;
 };
 
+// Horizontal scroll skeleton — fixed width to match real card
 const SkeletonCard = () => (
   <div className="anime-card-skeleton">
+    <div className="skeleton-image-wrapper"><div className="skel-shimmer"></div></div>
+    <div className="skeleton-text-line title"><div className="skel-shimmer"></div></div>
+    <div className="skeleton-text-line meta"><div className="skel-shimmer"></div></div>
+  </div>
+);
+
+// Grid skeleton — fills column, no fixed width
+const SkeletonCardGrid = () => (
+  <div className="anime-card-skeleton-grid">
     <div className="skeleton-image-wrapper"><div className="skel-shimmer"></div></div>
     <div className="skeleton-text-line title"><div className="skel-shimmer"></div></div>
     <div className="skeleton-text-line meta"><div className="skel-shimmer"></div></div>
@@ -546,9 +556,9 @@ export default function Home() {
           --surface2: rgba(255,255,255,0.07);
           --border: rgba(255,255,255,0.08);
           --border2: rgba(255,255,255,0.14);
-          --accent: #f47521;
-          --accent2: #ff8c3a;
-          --accent-glow: rgba(244,117,33,0.25);
+          --accent: #ef4444;
+          --accent2: #f87171;
+          --accent-glow: rgba(239,68,68,0.25);
           --text: #f0f0f2;
           --text2: rgba(240,240,242,0.65);
           --text3: rgba(240,240,242,0.35);
@@ -569,15 +579,14 @@ export default function Home() {
           background: var(--bg);
           color: var(--text);
           -webkit-tap-highlight-color: transparent;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
-
-       
-       
 
         /* ── SCROLLBAR ─────────────────────────────────── */
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(244,117,33,0.4); border-radius: 99px; }
+        ::-webkit-scrollbar-thumb { background: rgba(239,68,68,0.4); border-radius: 99px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
         /* ── BACKGROUND ────────────────────────────────── */
@@ -590,7 +599,7 @@ export default function Home() {
         .bg-gradient-orb {
           position: fixed; top: -30vh; left: 50%; transform: translateX(-50%);
           width: 80vw; height: 60vh;
-          background: radial-gradient(ellipse, rgba(244,117,33,0.07) 0%, transparent 70%);
+          background: radial-gradient(ellipse, rgba(239,68,68,0.07) 0%, transparent 70%);
           pointer-events: none; z-index: 0;
         }
 
@@ -601,19 +610,48 @@ export default function Home() {
         }
         .skel-shimmer {
           position: absolute; inset: 0;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-          animation: shimmer 1.8s ease-in-out infinite;
+          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+          animation: shimmer 1.6s ease-in-out infinite;
+          will-change: transform;
         }
-        .anime-card-skeleton { flex: 0 0 auto; width: 190px; display: flex; flex-direction: column; gap: 10px; }
+
+        /* ── HORIZONTAL SKELETON CARD ─────────────────── */
+        .anime-card-skeleton {
+          flex: 0 0 auto; width: 190px;
+          display: flex; flex-direction: column; gap: 10px;
+        }
         .skeleton-image-wrapper {
           width: 100%; aspect-ratio: 2/3;
           background: var(--bg3); border-radius: var(--radius-lg);
           position: relative; overflow: hidden;
         }
-        .skeleton-image-overlay { position: absolute; inset: 0; background: var(--bg3); z-index: 1; overflow: hidden; border-radius: inherit; }
-        .skeleton-text-line { height: 14px; background: var(--bg3); border-radius: 6px; position: relative; overflow: hidden; }
+        .skeleton-image-overlay {
+          position: absolute; inset: 0; background: var(--bg3);
+          z-index: 1; overflow: hidden; border-radius: inherit;
+        }
+        .skeleton-text-line {
+          height: 14px; background: var(--bg3);
+          border-radius: 6px; position: relative; overflow: hidden;
+        }
         .skeleton-text-line.title { width: 80%; }
         .skeleton-text-line.meta { width: 50%; height: 11px; }
+
+        /* ── GRID SKELETON CARD ───────────────────────── */
+        .anime-card-skeleton-grid {
+          width: 100%;
+          display: flex; flex-direction: column; gap: 10px;
+        }
+        .anime-card-skeleton-grid .skeleton-image-wrapper {
+          width: 100%; aspect-ratio: 2/3;
+          background: var(--bg3); border-radius: var(--radius-lg);
+          position: relative; overflow: hidden;
+        }
+        .anime-card-skeleton-grid .skeleton-text-line {
+          height: 13px; background: var(--bg3);
+          border-radius: 6px; position: relative; overflow: hidden;
+        }
+        .anime-card-skeleton-grid .skeleton-text-line.title { width: 80%; }
+        .anime-card-skeleton-grid .skeleton-text-line.meta { width: 52%; height: 11px; }
 
         /* ── HEADER ────────────────────────────────────── */
         .site-header {
@@ -621,8 +659,11 @@ export default function Home() {
           display: flex; align-items: center; justify-content: space-between;
           padding: 0 60px;
           height: 78px;
-             backdrop-filter: blur(12px);
-         border-bottom: 1px solid rgba(255, 255, 255, .1);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(255, 255, 255, .1);
+          transform: translateZ(0);
+          -webkit-transform: translateZ(0);
         }
         .header-logo { height: 36px; cursor: pointer; transition: opacity 0.2s; }
         .header-logo:hover { opacity: 0.85; }
@@ -705,18 +746,22 @@ export default function Home() {
         .carousel-wrap {
           width: 100%; height: 620px;
           position: relative; overflow: hidden; margin-bottom: 52px;
+          transform: translateZ(0);
+          -webkit-transform: translateZ(0);
         }
         .carousel-slide {
           position: absolute; inset: 0;
           opacity: 0; transition: opacity 0.9s cubic-bezier(0.4,0,0.2,1);
           display: flex;
+          will-change: opacity;
         }
         .carousel-slide.active { opacity: 1; z-index: 2; }
         .slide-bg {
           position: absolute; inset: 0;
           background-size: cover; background-position: center top;
           filter: blur(20px) brightness(0.3) saturate(0.8);
-          transform: scale(1.08);
+          transform: scale(1.08) translateZ(0);
+          -webkit-transform: scale(1.08) translateZ(0);
         }
         .slide-vignette {
           position: absolute; inset: 0; z-index: 1;
@@ -757,8 +802,8 @@ export default function Home() {
         .genre-chip {
           font-size: 12px; font-weight: 600;
           padding: 4px 12px; border-radius: 99px;
-          background: rgba(244,117,33,0.12);
-          border: 1px solid rgba(244,117,33,0.35);
+          background: rgba(239,68,68,0.12);
+          border: 1px solid rgba(239,68,68,0.35);
           color: var(--accent2); font-family: 'Outfit', sans-serif;
           letter-spacing: 0.02em;
         }
@@ -786,6 +831,7 @@ export default function Home() {
           border-radius: var(--radius-xl);
           box-shadow: 0 32px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08), 0 0 40px var(--accent-glow);
           animation: floatPoster 7s ease-in-out infinite;
+          will-change: transform;
         }
         .carousel-dots {
           position: absolute; bottom: 0px; left: 50%; transform: translateX(-50%);
@@ -797,18 +843,56 @@ export default function Home() {
         }
         .c-dot.active { background: var(--accent); width: 36px; }
 
-        /* Carousel Skeleton */
+        /* ── CAROUSEL SKELETON ─────────────────────────── */
         .carousel-skel {
           width: 100%; height: 100%;
           display: flex; align-items: center; justify-content: space-between;
-          padding: 0 60px; max-width: 1320px; margin: 0 auto;
+          padding: 0 60px; max-width: 1320px; margin: 0 auto; gap: 48px;
         }
-        .cskel-content { flex: 1; display: flex; flex-direction: column; gap: 16px; }
-        .cskel-tag { width: 100px; height: 28px; background: var(--bg3); border-radius: 99px; position: relative; overflow: hidden; }
-        .cskel-title { width: 70%; height: 56px; background: var(--bg3); border-radius: var(--radius-sm); position: relative; overflow: hidden; }
-        .cskel-desc { width: 90%; height: 60px; background: var(--bg3); border-radius: var(--radius-sm); position: relative; overflow: hidden; }
-        .cskel-btn { width: 160px; height: 48px; background: var(--bg3); border-radius: var(--radius-sm); position: relative; overflow: hidden; }
-        .cskel-poster { width: 240px; aspect-ratio: 2/3; background: var(--bg3); border-radius: var(--radius-xl); position: relative; overflow: hidden; }
+        .cskel-content { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+        .cskel-meta { display: flex; gap: 10px; align-items: center; }
+        .cskel-tag {
+          width: 80px; height: 26px; border-radius: 99px;
+          background: var(--bg3); position: relative; overflow: hidden;
+        }
+        .cskel-ep {
+          width: 110px; height: 26px; border-radius: 99px;
+          background: var(--bg3); position: relative; overflow: hidden;
+        }
+        .cskel-title {
+          width: 68%; height: 52px; border-radius: var(--radius-sm);
+          background: var(--bg3); position: relative; overflow: hidden;
+        }
+        .cskel-title2 {
+          width: 45%; height: 52px; border-radius: var(--radius-sm);
+          background: var(--bg3); position: relative; overflow: hidden;
+        }
+        .cskel-genres { display: flex; gap: 8px; }
+        .cskel-genre {
+          width: 70px; height: 24px; border-radius: 99px;
+          background: var(--bg3); position: relative; overflow: hidden;
+        }
+        .cskel-desc {
+          width: 92%; height: 13px; border-radius: 6px;
+          background: var(--bg3); position: relative; overflow: hidden;
+        }
+        .cskel-desc2 {
+          width: 76%; height: 13px; border-radius: 6px;
+          background: var(--bg3); position: relative; overflow: hidden;
+        }
+        .cskel-desc3 {
+          width: 83%; height: 13px; border-radius: 6px;
+          background: var(--bg3); position: relative; overflow: hidden;
+        }
+        .cskel-btn {
+          width: 160px; height: 50px; border-radius: var(--radius-sm);
+          background: var(--bg3); position: relative; overflow: hidden;
+        }
+        .cskel-poster {
+          flex: 0 0 260px; width: 260px; aspect-ratio: 2/3;
+          border-radius: var(--radius-xl);
+          background: var(--bg3); position: relative; overflow: hidden;
+        }
 
         /* ── SECTION TITLES ─────────────────────────────── */
         .section-wrap {
@@ -840,14 +924,19 @@ export default function Home() {
         .h-scroll {
           display: flex; gap: 14px; overflow-x: auto;
           padding-bottom: 12px; padding-right: 40px;
-          scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          transform: translateZ(0);
+          -webkit-transform: translateZ(0);
+          overscroll-behavior-x: contain;
         }
-        .h-scroll::-webkit-scrollbar { height: 0; }
+        .h-scroll::-webkit-scrollbar { height: 0; display: none; }
 
         /* ── ANIME CARD ─────────────────────────────────── */
         .anime-card {
           cursor: pointer; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
           position: relative; border-radius: var(--radius-lg); flex: 0 0 auto;
+          contain: layout style paint;
         }
         .horizontal-card { width: 190px; }
         .card-image-wrapper {
@@ -879,6 +968,7 @@ export default function Home() {
           border-radius: 8px; cursor: pointer; display: flex;
           align-items: center; justify-content: center; transition: all 0.2s;
           backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
         }
         .card-bookmark-btn:hover { color: #fff; background: rgba(0,0,0,0.6); }
         .card-bookmark-btn.bookmarked { color: var(--gold); }
@@ -900,6 +990,7 @@ export default function Home() {
           position: absolute; bottom: 10px; left: 10px;
           font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.85);
           background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
           padding: 3px 10px; border-radius: 99px; border: 1px solid var(--border);
           font-family: 'Outfit', sans-serif;
         }
@@ -938,12 +1029,14 @@ export default function Home() {
           font-size: 14px; font-weight: 600; cursor: pointer;
           transition: all 0.2s; font-family: 'Outfit', sans-serif;
         }
-        .admin-btn:hover { color: var(--text); border-color: var(--accent); background: rgba(244,117,33,0.06); }
+        .admin-btn:hover { color: var(--text); border-color: var(--accent); background: rgba(239,68,68,0.06); }
 
         /* ── SEARCH ─────────────────────────────────────── */
         .search-overlay {
           position: fixed; inset: 0; background: rgba(0,0,0,0.92);
-          backdrop-filter: blur(12px); z-index: 99999;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          z-index: 99999;
           display: flex; align-items: flex-end; justify-content: center;
           animation: fadeIn 0.25s ease;
         }
@@ -973,7 +1066,7 @@ export default function Home() {
         .search-clear:hover { color: var(--text); background: var(--surface2); }
         .search-close { background: var(--surface); border: 1px solid var(--border); color: var(--text3); width: 40px; height: 40px; min-width: 40px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
         .search-close:hover { color: var(--text); background: var(--surface2); }
-        .search-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+        .search-body { flex: 1; overflow-y: auto; padding: 16px 20px; -webkit-overflow-scrolling: touch; }
         .search-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 60px 20px; color: var(--text3); font-size: 14px; }
         .search-list { display: flex; flex-direction: column; gap: 8px; }
         .search-item {
@@ -992,7 +1085,9 @@ export default function Home() {
         /* ── AUTH MODALS ─────────────────────────────────── */
         .auth-overlay {
           position: fixed; inset: 0; background: rgba(0,0,0,0.88);
-          backdrop-filter: blur(12px); z-index: 99999;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          z-index: 99999;
           display: flex; align-items: center; justify-content: center; padding: 20px;
           animation: fadeIn 0.2s ease;
         }
@@ -1015,7 +1110,7 @@ export default function Home() {
         .auth-box-head { text-align: center; margin-bottom: 24px; }
         .auth-brand-dot {
           width: 40px; height: 40px; border-radius: 12px;
-          background: linear-gradient(135deg, var(--accent), #ff6b00);
+          background: linear-gradient(135deg, var(--accent), #dc2626);
           margin: 0 auto 14px; box-shadow: 0 8px 24px var(--accent-glow);
         }
         .auth-icon { width: 44px; height: 44px; border-radius: 14px; background: rgba(42,171,238,0.15); border: 1px solid rgba(42,171,238,0.3); color: var(--teal); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
@@ -1059,16 +1154,16 @@ export default function Home() {
         .auth-switch-link:hover { text-decoration: underline; }
 
         /* ── NOTIFICATION ──────────────────────────────── */
-        .notif-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 99998; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.2s ease; }
+        .notif-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 99998; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.2s ease; }
         .notif-box { width: 100%; max-width: 400px; max-height: 78vh; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; overflow: hidden; animation: authPop 0.22s ease; }
         .notif-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
         .notif-head-title { font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 8px; }
-        .notif-count-badge { background: rgba(244,117,33,0.15); border: 1px solid rgba(244,117,33,0.3); color: var(--accent); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; font-family: 'Outfit', sans-serif; }
+        .notif-count-badge { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: var(--accent); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; font-family: 'Outfit', sans-serif; }
         .notif-close-btn { background: var(--surface); border: none; color: var(--text3); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
         .notif-close-btn:hover { color: var(--text); background: var(--surface2); }
-        .notif-list { overflow-y: auto; padding: 10px 12px; flex: 1; }
+        .notif-list { overflow-y: auto; padding: 10px 12px; flex: 1; -webkit-overflow-scrolling: touch; }
         .notif-item { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: var(--radius); margin-bottom: 6px; background: var(--surface); border: 1px solid var(--border); transition: background 0.2s; }
-        .notif-item.unread { background: rgba(244,117,33,0.05); border-color: rgba(244,117,33,0.2); }
+        .notif-item.unread { background: rgba(239,68,68,0.05); border-color: rgba(239,68,68,0.2); }
         .notif-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 6px; }
         .notif-dot.read { background: transparent; }
         .notif-body { flex: 1; min-width: 0; }
@@ -1102,7 +1197,7 @@ export default function Home() {
         .footer-link:hover { color: var(--accent); }
         .footer-socials { display: flex; gap: 10px; }
         .social-btn { width: 38px; height: 38px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text2); transition: all 0.2s; text-decoration: none; }
-        .social-btn:hover { background: rgba(244,117,33,0.12); border-color: rgba(244,117,33,0.4); color: var(--accent); }
+        .social-btn:hover { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.4); color: var(--accent); }
         .footer-bottom { border-top: 1px solid var(--border); padding-top: 24px; display: flex; align-items: center; justify-content: space-between; }
         .footer-copy { font-size: 13px; color: var(--text3); }
         .footer-brand { font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700; color: var(--accent); }
@@ -1115,6 +1210,17 @@ export default function Home() {
         .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); width: 100%; }
         .carousel-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text3); font-size: 18px; }
 
+        /* ── MOBILE: no hover overlay stuck states ──────── */
+        @media (max-width: 768px) {
+          .card-hover-overlay { display: none; }
+          /* Lighter shimmer animation for battery saving */
+          .skel-shimmer { animation-duration: 2s; }
+          /* Cheaper blur on mobile */
+          .slide-bg { filter: brightness(0.35) saturate(0.6); }
+          /* No float animation on mobile */
+          .slide-poster { animation: none; }
+        }
+
         /* ── RESPONSIVE ─────────────────────────────────── */
         @media (max-width: 1200px) {
           .site-header { padding: 0 30px; }
@@ -1125,6 +1231,7 @@ export default function Home() {
           .grid-section { padding: 0 30px; }
           .admin-bar { padding: 0 30px; }
           .footer { padding: 40px 30px; }
+          .carousel-skel { padding: 0 30px; }
         }
         @media (max-width: 900px) {
           .carousel-wrap { height: 420px; }
@@ -1138,6 +1245,8 @@ export default function Home() {
           .watch-btn { position: absolute; top: 16px; right: 16px; padding: 9px 16px; font-size: 13px; margin-top: -80px; }
           .footer-grid { grid-template-columns: repeat(2,1fr); }
           .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
+          .cskel-poster { display: none; }
+          .carousel-skel { padding: 0 24px; }
         }
         @media (max-width: 768px) {
           .carousel-wrap { height: 300px; }
@@ -1148,6 +1257,8 @@ export default function Home() {
           .site-header { padding: 0 16px; }
           .footer { padding: 32px 16px; }
           .footer-grid { grid-template-columns: 1fr; gap: 24px; }
+          .carousel-skel { padding: 0 16px; }
+          .anime-card-skeleton { width: 150px; }
         }
         @media (max-width: 600px) {
           ::-webkit-scrollbar { display: none; }
@@ -1157,6 +1268,14 @@ export default function Home() {
           .carousel-wrap { height: 270px; }
           .site-header { height: 70px; }
           .header-logo { height: 28px; }
+        }
+
+        /* ── REDUCED MOTION ─────────────────────────────── */
+        @media (prefers-reduced-motion: reduce) {
+          .skel-shimmer { animation: none; background: rgba(255,255,255,0.04); }
+          .slide-poster { animation: none; }
+          .carousel-slide { transition: opacity 0.3s; }
+          .anime-card { transition: none; }
         }
       `}</style>
 
@@ -1227,9 +1346,20 @@ export default function Home() {
         {loading ? (
           <div className="carousel-skel">
             <div className="cskel-content">
-              <div className="cskel-tag"><div className="skel-shimmer" /></div>
+              <div className="cskel-meta">
+                <div className="cskel-tag"><div className="skel-shimmer" /></div>
+                <div className="cskel-ep"><div className="skel-shimmer" /></div>
+              </div>
               <div className="cskel-title"><div className="skel-shimmer" /></div>
+              <div className="cskel-title2"><div className="skel-shimmer" /></div>
+              <div className="cskel-genres">
+                <div className="cskel-genre"><div className="skel-shimmer" /></div>
+                <div className="cskel-genre"><div className="skel-shimmer" /></div>
+                <div className="cskel-genre"><div className="skel-shimmer" /></div>
+              </div>
               <div className="cskel-desc"><div className="skel-shimmer" /></div>
+              <div className="cskel-desc2"><div className="skel-shimmer" /></div>
+              <div className="cskel-desc3"><div className="skel-shimmer" /></div>
               <div className="cskel-btn"><div className="skel-shimmer" /></div>
             </div>
             <div className="cskel-poster"><div className="skel-shimmer" /></div>
@@ -1292,18 +1422,32 @@ export default function Home() {
         </div>
       )}
 
-      {/* ANIME SECTIONS */}
+      {/* ANIME SECTIONS — layout-aware skeleton */}
       {loading ? (
-        [1,2,3,4].map(row => (
-          <div key={row} className="section-wrap">
-            <div className="section-head">
-              <div style={{ width: 200, height: 24, background: 'var(--bg3)', borderRadius: 8, position: 'relative', overflow: 'hidden' }}><div className="skel-shimmer" /></div>
-            </div>
-            <div className="h-scroll" style={{ overflow: 'hidden' }}>
-              {[1,2,3,4,5,6].map(i => <SkeletonCard key={i} />)}
+        userLayout === 'grid' ? (
+          // Grid skeleton: fills grid columns, no fixed width
+          <div className="grid-section">
+            <div className="grid-container">
+              {Array.from({ length: 15 }).map((_, i) => (
+                <SkeletonCardGrid key={i} />
+              ))}
             </div>
           </div>
-        ))
+        ) : (
+          // Horizontal skeleton: 4 rows of fixed-width cards
+          [1, 2, 3, 4].map(row => (
+            <div key={row} className="section-wrap">
+              <div className="section-head">
+                <div style={{ width: 200, height: 24, background: 'var(--bg3)', borderRadius: 8, position: 'relative', overflow: 'hidden' }}>
+                  <div className="skel-shimmer" />
+                </div>
+              </div>
+              <div className="h-scroll" style={{ overflow: 'hidden' }}>
+                {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
+              </div>
+            </div>
+          ))
+        )
       ) : animeCards.length === 0 ? (
         <div className="empty-state">Hali anime qo'shilmagan</div>
       ) : userLayout === 'grid' ? (
