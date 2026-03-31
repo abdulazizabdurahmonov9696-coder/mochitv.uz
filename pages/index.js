@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Script from 'next/script';
 import { Heart, LogOut, Lock, Loader, Eye, Play, Youtube, X, Search, Calendar, ExternalLink, ThumbsUp, Share2, CheckCircle, Star, Bell, ChevronRight, Grid, AlignJustify } from 'lucide-react';
 import { FaTelegramPlane } from "react-icons/fa";
@@ -35,7 +35,6 @@ const dailyShuffle = (array) => {
   return shuffled;
 };
 
-// Horizontal scroll skeleton — fixed width to match real card
 const SkeletonCard = () => (
   <div className="anime-card-skeleton">
     <div className="skeleton-image-wrapper"><div className="skel-shimmer"></div></div>
@@ -44,7 +43,6 @@ const SkeletonCard = () => (
   </div>
 );
 
-// Grid skeleton — fills column, no fixed width
 const SkeletonCardGrid = () => (
   <div className="anime-card-skeleton-grid">
     <div className="skeleton-image-wrapper"><div className="skel-shimmer"></div></div>
@@ -65,6 +63,8 @@ function AnimeCard({ anime, allViews, favorites, toggleFavorite, goToAnime, isHo
           className={`card-image ${imageLoaded ? 'loaded' : 'loading'}`}
           src={anime.image_url}
           alt={anime.title}
+          loading="lazy"
+          decoding="async"
           onLoad={() => setImageLoaded(true)}
         />
         <div className="card-top-row">
@@ -134,7 +134,7 @@ function SearchModal({ onClose, animeCards, onAnimeClick, allViews }) {
             <div className="search-list">
               {searchResults.map(anime => (
                 <div key={anime.id} className="search-item" onClick={() => { onAnimeClick(anime); onClose(); }}>
-                  <img src={anime.image_url} alt={anime.title} className="search-item-thumb" />
+                  <img src={anime.image_url} alt={anime.title} className="search-item-thumb" loading="lazy" decoding="async" />
                   <div className="search-item-info">
                     <div className="search-item-title">{anime.title}</div>
                     <div className="search-item-meta">
@@ -307,8 +307,17 @@ export default function Home() {
     checkCurrentUser();
     loadData();
     checkIsMobile();
-    window.addEventListener('resize', checkIsMobile);
-    return () => window.removeEventListener('resize', checkIsMobile);
+    // Debounced resize handler — prevents layout thrash on mobile
+    let resizeTimer;
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(checkIsMobile, 150);
+    };
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -323,6 +332,7 @@ export default function Home() {
   }, [userLayout, isMountedForGrid]);
 
   const checkIsMobile = () => setIsMobile(window.innerWidth < 1200);
+
   const getResponsiveLoadCount = () => {
     if (typeof window === 'undefined') return 15;
     const w = window.innerWidth;
@@ -612,7 +622,6 @@ export default function Home() {
           position: absolute; inset: 0;
           background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
           animation: shimmer 1.6s ease-in-out infinite;
-          will-change: transform;
         }
 
         /* ── HORIZONTAL SKELETON CARD ─────────────────── */
@@ -659,11 +668,15 @@ export default function Home() {
           display: flex; align-items: center; justify-content: space-between;
           padding: 0 60px;
           height: 78px;
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
+          background: rgba(13,13,15,0.92);
           border-bottom: 1px solid rgba(255, 255, 255, .1);
-          transform: translateZ(0);
-          -webkit-transform: translateZ(0);
+        }
+        /* backdrop-filter only on desktop — too heavy on mobile */
+        @media (min-width: 769px) {
+          .site-header {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+          }
         }
         .header-logo { height: 36px; cursor: pointer; transition: opacity 0.2s; }
         .header-logo:hover { opacity: 0.85; }
@@ -746,22 +759,18 @@ export default function Home() {
         .carousel-wrap {
           width: 100%; height: 620px;
           position: relative; overflow: hidden; margin-bottom: 52px;
-          transform: translateZ(0);
-          -webkit-transform: translateZ(0);
         }
         .carousel-slide {
           position: absolute; inset: 0;
           opacity: 0; transition: opacity 0.9s cubic-bezier(0.4,0,0.2,1);
           display: flex;
-          will-change: opacity;
         }
         .carousel-slide.active { opacity: 1; z-index: 2; }
         .slide-bg {
           position: absolute; inset: 0;
           background-size: cover; background-position: center top;
           filter: blur(20px) brightness(0.3) saturate(0.8);
-          transform: scale(1.08) translateZ(0);
-          -webkit-transform: scale(1.08) translateZ(0);
+          transform: scale(1.08);
         }
         .slide-vignette {
           position: absolute; inset: 0; z-index: 1;
@@ -831,7 +840,6 @@ export default function Home() {
           border-radius: var(--radius-xl);
           box-shadow: 0 32px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08), 0 0 40px var(--accent-glow);
           animation: floatPoster 7s ease-in-out infinite;
-          will-change: transform;
         }
         .carousel-dots {
           position: absolute; bottom: 0px; left: 50%; transform: translateX(-50%);
@@ -851,54 +859,20 @@ export default function Home() {
         }
         .cskel-content { flex: 1; display: flex; flex-direction: column; gap: 14px; }
         .cskel-meta { display: flex; gap: 10px; align-items: center; }
-        .cskel-tag {
-          width: 80px; height: 26px; border-radius: 99px;
-          background: var(--bg3); position: relative; overflow: hidden;
-        }
-        .cskel-ep {
-          width: 110px; height: 26px; border-radius: 99px;
-          background: var(--bg3); position: relative; overflow: hidden;
-        }
-        .cskel-title {
-          width: 68%; height: 52px; border-radius: var(--radius-sm);
-          background: var(--bg3); position: relative; overflow: hidden;
-        }
-        .cskel-title2 {
-          width: 45%; height: 52px; border-radius: var(--radius-sm);
-          background: var(--bg3); position: relative; overflow: hidden;
-        }
+        .cskel-tag { width: 80px; height: 26px; border-radius: 99px; background: var(--bg3); position: relative; overflow: hidden; }
+        .cskel-ep { width: 110px; height: 26px; border-radius: 99px; background: var(--bg3); position: relative; overflow: hidden; }
+        .cskel-title { width: 68%; height: 52px; border-radius: var(--radius-sm); background: var(--bg3); position: relative; overflow: hidden; }
+        .cskel-title2 { width: 45%; height: 52px; border-radius: var(--radius-sm); background: var(--bg3); position: relative; overflow: hidden; }
         .cskel-genres { display: flex; gap: 8px; }
-        .cskel-genre {
-          width: 70px; height: 24px; border-radius: 99px;
-          background: var(--bg3); position: relative; overflow: hidden;
-        }
-        .cskel-desc {
-          width: 92%; height: 13px; border-radius: 6px;
-          background: var(--bg3); position: relative; overflow: hidden;
-        }
-        .cskel-desc2 {
-          width: 76%; height: 13px; border-radius: 6px;
-          background: var(--bg3); position: relative; overflow: hidden;
-        }
-        .cskel-desc3 {
-          width: 83%; height: 13px; border-radius: 6px;
-          background: var(--bg3); position: relative; overflow: hidden;
-        }
-        .cskel-btn {
-          width: 160px; height: 50px; border-radius: var(--radius-sm);
-          background: var(--bg3); position: relative; overflow: hidden;
-        }
-        .cskel-poster {
-          flex: 0 0 260px; width: 260px; aspect-ratio: 2/3;
-          border-radius: var(--radius-xl);
-          background: var(--bg3); position: relative; overflow: hidden;
-        }
+        .cskel-genre { width: 70px; height: 24px; border-radius: 99px; background: var(--bg3); position: relative; overflow: hidden; }
+        .cskel-desc { width: 92%; height: 13px; border-radius: 6px; background: var(--bg3); position: relative; overflow: hidden; }
+        .cskel-desc2 { width: 76%; height: 13px; border-radius: 6px; background: var(--bg3); position: relative; overflow: hidden; }
+        .cskel-desc3 { width: 83%; height: 13px; border-radius: 6px; background: var(--bg3); position: relative; overflow: hidden; }
+        .cskel-btn { width: 160px; height: 50px; border-radius: var(--radius-sm); background: var(--bg3); position: relative; overflow: hidden; }
+        .cskel-poster { flex: 0 0 260px; width: 260px; aspect-ratio: 2/3; border-radius: var(--radius-xl); background: var(--bg3); position: relative; overflow: hidden; }
 
         /* ── SECTION TITLES ─────────────────────────────── */
-        .section-wrap {
-          max-width: 1320px; margin: 0 auto 48px;
-          padding: 0 20px 0 60px;
-        }
+        .section-wrap { max-width: 1320px; margin: 0 auto 48px; padding: 0 20px 0 60px; }
         .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; padding-right: 40px; }
         .section-title {
           font-family: 'Outfit', sans-serif;
@@ -926,8 +900,6 @@ export default function Home() {
           padding-bottom: 12px; padding-right: 40px;
           scroll-behavior: smooth;
           -webkit-overflow-scrolling: touch;
-          transform: translateZ(0);
-          -webkit-transform: translateZ(0);
           overscroll-behavior-x: contain;
         }
         .h-scroll::-webkit-scrollbar { height: 0; display: none; }
@@ -947,7 +919,6 @@ export default function Home() {
         }
         .card-image { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; opacity: 0; border-radius: var(--radius-lg); }
         .card-image.loaded { opacity: 1; }
-
         .card-top-row {
           position: absolute; top: 0; left: 0; right: 0;
           display: flex; justify-content: space-between; align-items: flex-start;
@@ -967,12 +938,9 @@ export default function Home() {
           color: rgba(255,255,255,0.75); width: 30px; height: 30px;
           border-radius: 8px; cursor: pointer; display: flex;
           align-items: center; justify-content: center; transition: all 0.2s;
-          backdrop-filter: blur(4px);
-          -webkit-backdrop-filter: blur(4px);
         }
         .card-bookmark-btn:hover { color: #fff; background: rgba(0,0,0,0.6); }
         .card-bookmark-btn.bookmarked { color: var(--gold); }
-
         .card-hover-overlay {
           position: absolute; inset: 0; z-index: 3;
           background: linear-gradient(0deg, rgba(13,13,15,0.92) 0%, rgba(13,13,15,0.3) 50%, transparent 100%);
@@ -989,8 +957,7 @@ export default function Home() {
         .card-ep-badge {
           position: absolute; bottom: 10px; left: 10px;
           font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.85);
-          background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
-          -webkit-backdrop-filter: blur(4px);
+          background: rgba(0,0,0,0.55);
           padding: 3px 10px; border-radius: 99px; border: 1px solid var(--border);
           font-family: 'Outfit', sans-serif;
         }
@@ -1021,7 +988,7 @@ export default function Home() {
         .load-more-btn button:active { background: var(--accent); color: #fff; box-shadow: 0 4px 20px var(--accent-glow); transform: translateY(-2px); }
 
         /* ── ADMIN ─────────────────────────────────────── */
-        .admin-bar { max-width: 1320px; margin: 0 auto 32px; padding: 0 60px; display: flex; }
+        .admin-bar { max-width: 1320px; margin: 0 auto 32px; padding: 0 60px; display: flex; justify-content: center; }
         .admin-btn {
           display: flex; align-items: center; gap: 8px;
           background: none; border: 1.5px solid var(--border2);
@@ -1034,11 +1001,12 @@ export default function Home() {
         /* ── SEARCH ─────────────────────────────────────── */
         .search-overlay {
           position: fixed; inset: 0; background: rgba(0,0,0,0.92);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
           z-index: 99999;
           display: flex; align-items: flex-end; justify-content: center;
           animation: fadeIn 0.25s ease;
+        }
+        @media (min-width: 769px) {
+          .search-overlay { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -1085,11 +1053,12 @@ export default function Home() {
         /* ── AUTH MODALS ─────────────────────────────────── */
         .auth-overlay {
           position: fixed; inset: 0; background: rgba(0,0,0,0.88);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
           z-index: 99999;
           display: flex; align-items: center; justify-content: center; padding: 20px;
           animation: fadeIn 0.2s ease;
+        }
+        @media (min-width: 769px) {
+          .auth-overlay { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         }
         @keyframes authPop { from { opacity: 0; transform: scale(0.95) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         .auth-box {
@@ -1114,7 +1083,6 @@ export default function Home() {
           margin: 0 auto 14px; box-shadow: 0 8px 24px var(--accent-glow);
         }
         .auth-icon { width: 44px; height: 44px; border-radius: 14px; background: rgba(42,171,238,0.15); border: 1px solid rgba(42,171,238,0.3); color: var(--teal); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
-        .auth-icon.tg { }
         .auth-box-title { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
         .auth-box-sub { font-size: 13px; color: var(--text2); line-height: 1.5; }
         .tg-start-btn {
@@ -1154,7 +1122,10 @@ export default function Home() {
         .auth-switch-link:hover { text-decoration: underline; }
 
         /* ── NOTIFICATION ──────────────────────────────── */
-        .notif-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 99998; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.2s ease; }
+        .notif-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 99998; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn 0.2s ease; }
+        @media (min-width: 769px) {
+          .notif-overlay { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+        }
         .notif-box { width: 100%; max-width: 400px; max-height: 78vh; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; overflow: hidden; animation: authPop 0.22s ease; }
         .notif-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
         .notif-head-title { font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 8px; }
@@ -1186,10 +1157,7 @@ export default function Home() {
         .modal-ok:hover { background: var(--accent2); }
 
         /* ── FOOTER ─────────────────────────────────────── */
-        .footer {
-          border-top: 1px solid var(--border); padding: 56px 60px 40px;
-          background: var(--bg2); position: relative;
-        }
+        .footer { border-top: 1px solid var(--border); padding: 56px 60px 40px; background: var(--bg2); position: relative; }
         .footer-inner { max-width: 1320px; margin: 0 auto; }
         .footer-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 40px; margin-bottom: 40px; }
         .footer-col-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 14px; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -1210,15 +1178,37 @@ export default function Home() {
         .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); width: 100%; }
         .carousel-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text3); font-size: 18px; }
 
-        /* ── MOBILE: no hover overlay stuck states ──────── */
-        @media (max-width: 768px) {
+        /* ── CUSTOM CURSOR (desktop only) ──────────────── */
+        @media (pointer: fine) {
+          .cursor-dot {
+            position: fixed; pointer-events: none; z-index: 99999;
+            width: 6px; height: 6px; background: var(--accent);
+            border-radius: 50%; transform: translate(-50%, -50%);
+            transition: transform 0.1s ease;
+          }
+          .cursor-ring {
+            position: fixed; pointer-events: none; z-index: 99998;
+            width: 28px; height: 28px;
+            border: 1.5px solid rgba(239,68,68,0.5);
+            border-radius: 50%; transform: translate(-50%, -50%);
+            transition: left 0.12s ease, top 0.12s ease;
+          }
+        }
+        @media (pointer: coarse) {
+          .cursor-dot, .cursor-ring { display: none; }
           .card-hover-overlay { display: none; }
-          /* Lighter shimmer animation for battery saving */
-          .skel-shimmer { animation-duration: 2s; }
-          /* Cheaper blur on mobile */
-          .slide-bg { filter: brightness(0.35) saturate(0.6); }
-          /* No float animation on mobile */
+        }
+
+        /* ── MOBILE: performance ────────────────────────── */
+        @media (max-width: 768px) {
+          /* Slower shimmer = less battery drain */
+          .skel-shimmer { animation-duration: 2.2s; }
+          /* No floating animation on mobile */
           .slide-poster { animation: none; }
+          /* Simplified slide bg — blur is GPU-heavy */
+          .slide-bg { filter: brightness(0.35) saturate(0.6); transform: none; }
+          /* No backdrop blur on cards */
+          .card-ep-badge { backdrop-filter: none; -webkit-backdrop-filter: none; }
         }
 
         /* ── RESPONSIVE ─────────────────────────────────── */
@@ -1229,14 +1219,13 @@ export default function Home() {
           .section-head { padding-right: 24px; }
           .h-scroll { padding-right: 24px; }
           .grid-section { padding: 0 30px; }
-          .admin-bar { padding: 0 100px; }
+          .admin-bar { padding: 0 30px; }
           .footer { padding: 40px 30px; }
           .carousel-skel { padding: 0 30px; }
         }
         @media (max-width: 900px) {
           .carousel-wrap { height: 420px; }
           .slide-poster-wrap { display: none; }
-          .slide-bg { filter: none; transform: scale(1); filter: brightness(0.45) saturate(0.6); }
           .slide-vignette { background: linear-gradient(0deg, rgba(13,13,15,0.98) 0%, rgba(13,13,15,0.4) 60%, transparent 100%); }
           .slide-content { display: block; padding: 0; height: 100%; position: relative; }
           .slide-text { position: absolute; bottom: 0; left: 0; right: 0; max-width: 100%; padding: 20px 24px 18px; justify-content: flex-end; }
@@ -1255,10 +1244,11 @@ export default function Home() {
           .h-scroll { padding-right: 16px; gap: 12px; }
           .horizontal-card { width: 150px; }
           .site-header { padding: 0 16px; }
-          .footer { padding: 32px 16px; }
+          .footer { padding: 60px 16px; }
           .footer-grid { grid-template-columns: 1fr; gap: 24px; }
           .carousel-skel { padding: 0 16px; }
           .anime-card-skeleton { width: 150px; }
+          .admin-bar { padding: 0 16px; }
         }
         @media (max-width: 600px) {
           ::-webkit-scrollbar { display: none; }
@@ -1279,7 +1269,7 @@ export default function Home() {
         }
       `}</style>
 
-      {/* Custom Cursor */}
+      {/* Custom Cursor — only rendered on desktop (pointer:fine) */}
       <CustomCursor />
 
       <div className="bg-noise" />
@@ -1290,7 +1280,6 @@ export default function Home() {
         <img src={LOGO_URL} alt="MochiTV" className="header-logo" onClick={() => window.location.href = '/'} />
 
         <nav className="header-nav" style={{ display: 'none' }}>
-          {/* Desktop nav items if needed */}
         </nav>
 
         <div className="header-right">
@@ -1398,7 +1387,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="slide-poster-wrap">
-                  <img src={item.anime_cards.image_url} alt={item.anime_cards.title} className="slide-poster" />
+                  <img src={item.anime_cards.image_url} alt={item.anime_cards.title} className="slide-poster" loading="eager" />
                 </div>
               </div>
             </div>
@@ -1422,10 +1411,9 @@ export default function Home() {
         </div>
       )}
 
-      {/* ANIME SECTIONS — layout-aware skeleton */}
+      {/* ANIME SECTIONS */}
       {loading ? (
         userLayout === 'grid' ? (
-          // Grid skeleton: fills grid columns, no fixed width
           <div className="grid-section">
             <div className="grid-container">
               {Array.from({ length: 15 }).map((_, i) => (
@@ -1434,7 +1422,6 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          // Horizontal skeleton: 4 rows of fixed-width cards
           [1, 2, 3, 4].map(row => (
             <div key={row} className="section-wrap">
               <div className="section-head">
@@ -1568,7 +1555,7 @@ export default function Home() {
           </div>
           <div className="footer-bottom">
             <span className="footer-copy">© 2026 MochiTv.Uz — Barcha huquqlar himoyalangan.</span>
-            <span className="footer-brand">MochiTV</span>
+            <span className="footer-brand">MochiTV.uz</span>
           </div>
         </div>
       </footer>
@@ -1577,19 +1564,24 @@ export default function Home() {
   );
 }
 
-// Custom Cursor Component
+// Custom Cursor — only active on desktop (pointer: fine = mouse)
 function CustomCursor() {
   const dot = useRef(null);
   const ring = useRef(null);
+  // Skip entirely on touch devices
+  const isTouch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
 
   useEffect(() => {
+    if (isTouch) return;
     const move = (e) => {
       if (dot.current) { dot.current.style.left = e.clientX + 'px'; dot.current.style.top = e.clientY + 'px'; }
       if (ring.current) { ring.current.style.left = e.clientX + 'px'; ring.current.style.top = e.clientY + 'px'; }
     };
-    window.addEventListener('mousemove', move);
+    window.addEventListener('mousemove', move, { passive: true });
     return () => window.removeEventListener('mousemove', move);
-  }, []);
+  }, [isTouch]);
+
+  if (isTouch) return null;
 
   return (
     <>
