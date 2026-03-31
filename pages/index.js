@@ -1178,26 +1178,7 @@ export default function Home() {
         .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); width: 100%; }
         .carousel-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text3); font-size: 18px; }
 
-        /* ── CUSTOM CURSOR (desktop only) ──────────────── */
-        @media (pointer: fine) {
-          .cursor-dot {
-            position: fixed; pointer-events: none; z-index: 99999;
-            width: 6px; height: 6px; background: var(--accent);
-            border-radius: 50%; transform: translate(-50%, -50%);
-            transition: transform 0.1s ease;
-          }
-          .cursor-ring {
-            position: fixed; pointer-events: none; z-index: 99998;
-            width: 28px; height: 28px;
-            border: 1.5px solid rgba(239,68,68,0.5);
-            border-radius: 50%; transform: translate(-50%, -50%);
-            transition: left 0.12s ease, top 0.12s ease;
-          }
-        }
-        @media (pointer: coarse) {
-          .cursor-dot, .cursor-ring { display: none; }
-          .card-hover-overlay { display: none; }
-        }
+        
 
         /* ── MOBILE: performance ────────────────────────── */
         @media (max-width: 768px) {

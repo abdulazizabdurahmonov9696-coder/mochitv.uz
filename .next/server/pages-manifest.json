@@ -5,6 +5,6 @@
   "/": "pages/index.js",
   "/404": "pages/404.js",
   "/admin/users": "pages/admin/users.js",
-  "/profile/[username]": "pages/profile/[username].js",
-  "/anime/[slug]": "pages/anime/[slug].js"
+  "/anime/[slug]": "pages/anime/[slug].js",
+  "/profile/[username]": "pages/profile/[username].js"
 }

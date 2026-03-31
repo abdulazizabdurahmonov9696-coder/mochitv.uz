@@ -32,10 +32,10 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/admin/users": [
+    "/anime/[slug]": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/admin/users.js"
+      "static/chunks/pages/anime/[slug].js"
     ],
     "/profile/[username]": [
       "static/chunks/webpack.js",
