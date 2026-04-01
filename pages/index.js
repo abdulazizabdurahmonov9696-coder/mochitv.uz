@@ -1200,7 +1200,7 @@ export default function Home() {
           .section-head { padding-right: 24px; }
           .h-scroll { padding-right: 24px; }
           .grid-section { padding: 0 30px; }
-          .admin-bar { padding: 0 30px; }
+          .admin-bar { padding: 0 20px; }
           .footer { padding: 40px 30px; }
           .carousel-skel { padding: 0 30px; }
         }
