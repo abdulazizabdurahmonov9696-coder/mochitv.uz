@@ -56,8 +56,8 @@ export default function UsersAdmin() {
   // Toast
   const [toast, setToast] = useState({ show: false, type: '', message: '' });
 
-  // Stats
-  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
+  // Stats (added active24)
+  const [stats, setStats] = useState({ total: 0, active: 0, active24: 0, inactive: 0 });
 
   useEffect(() => {
     const user = localStorage.getItem('anime_user');
@@ -98,10 +98,20 @@ export default function UsersAdmin() {
 
       const activeCount = list.filter(u => {
         if (!u.last_seen) return false;
-        return (Date.now() - new Date(u.last_seen).getTime()) < 10 * 60000;
+        return (Date.now() - new Date(u.last_seen).getTime()) < 10 * 60000; // 10 minutes
       }).length;
 
-      setStats({ total: list.length, active: activeCount, inactive: list.length - activeCount });
+      const active24Count = list.filter(u => {
+        if (!u.last_seen) return false;
+        return (Date.now() - new Date(u.last_seen).getTime()) < 24 * 60 * 60000; // 24 hours
+      }).length;
+
+      setStats({ 
+        total: list.length, 
+        active: activeCount, 
+        active24: active24Count, 
+        inactive: list.length - active24Count 
+      });
     } catch (e) {
       showToast('error', 'Yuklashda xatolik: ' + e.message);
     }
@@ -117,11 +127,16 @@ export default function UsersAdmin() {
         u.email?.toLowerCase().includes(q)
       );
     }
+    
     if (filterStatus === 'active') {
       list = list.filter(u => u.last_seen && (Date.now() - new Date(u.last_seen).getTime()) < 10 * 60000);
+    } else if (filterStatus === 'active24') {
+      list = list.filter(u => u.last_seen && (Date.now() - new Date(u.last_seen).getTime()) < 24 * 60 * 60000);
     } else if (filterStatus === 'inactive') {
-      list = list.filter(u => !u.last_seen || (Date.now() - new Date(u.last_seen).getTime()) >= 10 * 60000);
+      // Here inactive means older than 24 hours
+      list = list.filter(u => !u.last_seen || (Date.now() - new Date(u.last_seen).getTime()) >= 24 * 60 * 60000);
     }
+    
     setFiltered(list);
   };
 
@@ -208,7 +223,7 @@ export default function UsersAdmin() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedUsers.length === filtered.length) {
+    if (selectedUsers.length === filtered.length && filtered.length > 0) {
       setSelectedUsers([]);
     } else {
       setSelectedUsers(filtered.map(u => u.id));
@@ -263,18 +278,19 @@ export default function UsersAdmin() {
         .btn.danger { border-color: #ef4444; color: #ef4444; }
         .btn.danger:hover { background: #ef4444; color: #fff; }
 
-        /* STATS */
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+        /* STATS (Changed to 4 columns) */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
         .stat-card {
           border: 2px solid #fff; border-radius: 12px; padding: 20px 24px;
-          cursor: pointer; transition: all 0.2s;
+          cursor: pointer; transition: all 0.2s; background: #000;
         }
         .stat-card:hover { background: rgba(255,255,255,0.04); }
         .stat-card.active-filter { background: #fff; color: #000; }
         .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; opacity: 0.6; }
         .stat-card.active-filter .stat-label { opacity: 0.7; }
-        .stat-value { font-size: 36px; font-weight: 800; }
+        .stat-value { font-size: 32px; font-weight: 800; }
         .stat-value.green { color: #22c55e; }
+        .stat-value.yellow { color: #f59e0b; }
         .stat-value.red   { color: #ef4444; }
         .stat-card.active-filter .stat-value { color: #000; }
 
@@ -298,79 +314,117 @@ export default function UsersAdmin() {
           margin-bottom: 16px; background: rgba(217,70,239,0.06);
           flex-wrap: wrap;
         }
-        .bulk-count { font-weight: 700; color: #d946ef; font-size: 14px; }
-
-        /* TABLE */
-        .table-wrapper { border: 2px solid #fff; border-radius: 12px; overflow: hidden; }
-        .table-header {
-          display: grid;
-          grid-template-columns: 40px 2.5fr 1.5fr 1fr 1.2fr 160px;
-          padding: 13px 20px; background: #111;
-          border-bottom: 2px solid #fff;
-          font-size: 11px; font-weight: 700; text-transform: uppercase;
-          letter-spacing: 1px; color: #666; align-items: center;
-        }
-        .user-row {
-          display: grid;
-          grid-template-columns: 40px 2.5fr 1.5fr 1fr 1.2fr 160px;
-          padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.07);
-          align-items: center; transition: background 0.15s;
-        }
-        .user-row:last-child { border-bottom: none; }
-        .user-row:hover { background: rgba(255,255,255,0.03); }
-        .user-row.selected { background: rgba(217,70,239,0.07); }
+        .bulk-count { font-weight: 700; color: #d946ef; font-size: 14px; flex: 1; }
 
         /* Checkbox */
         .cb {
-          width: 20px; height: 20px; border: 2px solid #fff; border-radius: 4px;
+          width: 22px; height: 22px; border: 2px solid #fff; border-radius: 6px;
           cursor: pointer; display: flex; align-items: center; justify-content: center;
-          transition: all 0.2s; flex-shrink: 0;
+          transition: all 0.2s; flex-shrink: 0; background: #000;
         }
         .cb.checked { background: #d946ef; border-color: #d946ef; }
 
-        /* User cell */
-        .user-cell { display: flex; align-items: center; gap: 12px; }
-        .avatar-wrap { position: relative; flex-shrink: 0; }
+        /* ─── CARDS GRID SYSTEM ─── */
+        .users-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 20px;
+        }
+        .user-card {
+          border: 2px solid rgba(255,255,255,0.15);
+          border-radius: 14px;
+          padding: 20px;
+          background: #080808;
+          transition: all 0.2s ease;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+        }
+        .user-card:hover {
+          border-color: rgba(255,255,255,0.4);
+          transform: translateY(-4px);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+        .user-card.selected {
+          border-color: #d946ef;
+          background: rgba(217,70,239,0.08);
+        }
+        
+        .user-card .cb {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          z-index: 2;
+        }
+
+        .card-top {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          margin-bottom: 14px;
+          margin-top: 8px;
+        }
+        .avatar-wrap { position: relative; margin-bottom: 12px; }
         .avatar {
-          width: 40px; height: 40px; border-radius: 50%;
-          object-fit: cover; border: 2px solid rgba(255,255,255,0.2);
+          width: 70px; height: 70px; border-radius: 50%;
+          object-fit: cover; border: 3px solid #222;
           background: #1a1a1a;
         }
         .active-dot {
-          position: absolute; bottom: 1px; right: 1px;
-          width: 10px; height: 10px; border-radius: 50%;
-          border: 2px solid #000;
+          position: absolute; bottom: 3px; right: 3px;
+          width: 14px; height: 14px; border-radius: 50%;
+          border: 3px solid #080808;
         }
         .active-dot.online { background: #22c55e; animation: pulse 2s infinite; }
         .active-dot.offline { background: #555; }
 
-        .user-name { font-weight: 700; font-size: 14px; }
-        .user-bio { font-size: 11px; color: #666; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+        .user-name { font-weight: 800; font-size: 16px; letter-spacing: 0.5px; }
+        .user-email { font-size: 12px; color: #888; margin-top: 4px; word-break: break-all; }
 
-        /* Status pill */
+        .card-info {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+
         .status-pill {
-          display: inline-flex; align-items: center; gap: 5px;
-          padding: 4px 10px; border-radius: 20px; font-size: 11px;
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 5px 12px; border-radius: 20px; font-size: 11px;
           font-weight: 700; white-space: nowrap; border: 1.5px solid;
         }
 
-        /* Join date */
-        .join-date { font-size: 12px; color: #555; display: flex; align-items: center; gap: 5px; }
-
-        /* Row actions */
-        .row-actions { display: flex; justify-content: flex-end; gap: 8px; }
-        .icon-btn {
-          border: 2px solid #fff; border-radius: 8px; background: #000; color: #fff;
-          width: 36px; height: 36px; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          transition: all 0.2s; flex-shrink: 0;
+        .join-date { font-size: 12px; color: #666; display: flex; align-items: center; gap: 6px; }
+        
+        .user-bio { 
+          font-size: 12px; color: #999; text-align: center; 
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; 
+          overflow: hidden; min-height: 28px;
         }
-        .icon-btn:hover { background: #d946ef; border-color: #d946ef; }
-        .icon-btn.delete-btn:hover { background: #ef4444; border-color: #ef4444; }
+
+        /* Card actions */
+        .card-actions {
+          display: flex; gap: 10px;
+          border-top: 1px solid rgba(255,255,255,0.08);
+          padding-top: 16px;
+        }
+        .icon-btn {
+          flex: 1;
+          border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; 
+          background: transparent; color: #fff;
+          height: 38px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+          transition: all 0.2s; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700;
+        }
+        .icon-btn:hover { background: #d946ef; border-color: #d946ef; color: #000; }
+        .icon-btn.delete-btn:hover { background: #ef4444; border-color: #ef4444; color: #fff; }
 
         /* Empty */
         .empty-state {
-          padding: 80px 20px; text-align: center; color: #555; font-size: 15px;
+          padding: 80px 20px; text-align: center; color: #555; font-size: 15px; grid-column: 1 / -1;
         }
 
         /* MODALS */
@@ -398,7 +452,6 @@ export default function UsersAdmin() {
         }
         .close-btn:hover { background: #fff; color: #000; }
 
-        /* Delete warning box */
         .delete-warn {
           display: flex; gap: 14px; align-items: flex-start;
           padding: 18px; border: 2px solid rgba(239,68,68,0.4);
@@ -409,7 +462,6 @@ export default function UsersAdmin() {
         .delete-warn-sub { font-size: 13px; color: #888; line-height: 1.6; }
         .delete-warn-sub span { color: #ef4444; font-weight: 700; }
 
-        /* Target info */
         .target-info {
           display: flex; align-items: center; gap: 10px;
           padding: 12px 16px; border: 1.5px solid rgba(217,70,239,0.4);
@@ -430,7 +482,6 @@ export default function UsersAdmin() {
         .form-input:focus, .form-textarea:focus { border-color: #d946ef; }
         .form-textarea { min-height: 100px; resize: vertical; }
 
-        /* Type selector */
         .type-selector { display: flex; gap: 8px; }
         .type-btn {
           flex: 1; padding: 9px; border: 2px solid rgba(255,255,255,0.2);
@@ -469,19 +520,19 @@ export default function UsersAdmin() {
         .toast.success { background: rgba(0,0,0,0.95); color: #22c55e; border-color: #22c55e; }
         .toast.error   { background: rgba(0,0,0,0.95); color: #ef4444; border-color: #ef4444; }
 
+        /* RESPONSIVE GRID */
+        @media (max-width: 1150px) {
+          .users-grid { grid-template-columns: repeat(3, 1fr); }
+        }
         @media (max-width: 900px) {
-          .stats-grid { grid-template-columns: repeat(3, 1fr); }
-          .table-header, .user-row { grid-template-columns: 40px 2fr 1.2fr 140px; }
-          .table-header > *:nth-child(4), .user-row > *:nth-child(4),
-          .table-header > *:nth-child(5), .user-row > *:nth-child(5) { display: none; }
+          .stats-grid { grid-template-columns: repeat(2, 1fr); }
+          .users-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 600px) {
           body { padding: 12px; }
-          .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+          .stats-grid { grid-template-columns: 1fr; gap: 10px; }
           .stat-value { font-size: 26px; }
-          .table-header { display: none; }
-          .user-row { grid-template-columns: 40px 1fr 120px; gap: 8px; padding: 14px; }
-          .table-header > *:nth-child(3), .user-row > *:nth-child(3) { display: none; }
+          .users-grid { grid-template-columns: 1fr; }
           .header-title { font-size: 20px; }
         }
       `}</style>
@@ -626,24 +677,36 @@ export default function UsersAdmin() {
           </div>
         </div>
 
-        {/* STATS */}
+        {/* STATS (Now 4 cards) */}
         <div className="stats-grid">
           <div className={`stat-card ${filterStatus === 'all' ? 'active-filter' : ''}`} onClick={() => setFilterStatus('all')}>
             <div className="stat-label"><Users size={12} /> Jami</div>
             <div className="stat-value">{stats.total}</div>
           </div>
           <div className={`stat-card ${filterStatus === 'active' ? 'active-filter' : ''}`} onClick={() => setFilterStatus('active')}>
-            <div className="stat-label"><Activity size={12} /> Faol (10 daq)</div>
+            <div className="stat-label"><Activity size={12} /> Hozir faol (10 daq)</div>
             <div className={`stat-value ${filterStatus !== 'active' ? 'green' : ''}`}>{stats.active}</div>
           </div>
+          <div className={`stat-card ${filterStatus === 'active24' ? 'active-filter' : ''}`} onClick={() => setFilterStatus('active24')}>
+            <div className="stat-label"><Clock size={12} /> 24 soat ichida faol</div>
+            <div className={`stat-value ${filterStatus !== 'active24' ? 'yellow' : ''}`}>{stats.active24}</div>
+          </div>
           <div className={`stat-card ${filterStatus === 'inactive' ? 'active-filter' : ''}`} onClick={() => setFilterStatus('inactive')}>
-            <div className="stat-label"><BellOff size={12} /> Faol emas</div>
+            <div className="stat-label"><BellOff size={12} /> Faol emas (+24s)</div>
             <div className={`stat-value ${filterStatus !== 'inactive' ? 'red' : ''}`}>{stats.inactive}</div>
           </div>
         </div>
 
         {/* TOOLBAR */}
         <div className="toolbar">
+          <button 
+            className={`btn ${selectedUsers.length === filtered.length && filtered.length > 0 ? 'accent' : ''}`}
+            onClick={toggleSelectAll}
+          >
+            {selectedUsers.length === filtered.length && filtered.length > 0 ? <Check size={14} /> : <CheckCircle size={14} />}
+            Barchasini tanlash
+          </button>
+          
           <div className="search-box">
             <Search size={16} style={{ color: '#555', flexShrink: 0 }} />
             <input
@@ -662,112 +725,98 @@ export default function UsersAdmin() {
         {/* BULK ACTION BAR */}
         {selectedUsers.length > 0 && (
           <div className="bulk-bar">
-            <CheckCircle size={16} style={{ color: '#d946ef' }} />
-            <span className="bulk-count">{selectedUsers.length} ta tanlandi</span>
-            <button className="btn accent" style={{ padding: '7px 14px', fontSize: 12 }}
+            <span className="bulk-count">{selectedUsers.length} ta foydalanuvchi tanlandi</span>
+            <button className="btn accent" style={{ padding: '8px 16px', fontSize: 12 }}
               onClick={() => { setNotifTitle(''); setNotifMessage(''); setNotifType('info'); setNotifModal({ show: true, target: 'bulk' }); }}>
-              <Send size={13} /> Xabar yuborish
+              <Send size={14} /> Xabar
             </button>
-            <button className="btn danger" style={{ padding: '7px 14px', fontSize: 12 }}
+            <button className="btn danger" style={{ padding: '8px 16px', fontSize: 12 }}
               onClick={() => setDeleteModal({ show: true, target: 'bulk' })}>
-              <Trash2 size={13} /> O'chirish
+              <Trash2 size={14} /> O'chirish
             </button>
-            <button className="btn" style={{ padding: '7px 14px', fontSize: 12 }}
+            <button className="btn" style={{ padding: '8px 16px', fontSize: 12 }}
               onClick={() => setSelectedUsers([])}>
-              <X size={13} /> Bekor
+              <X size={14} /> Bekor
             </button>
           </div>
         )}
 
-        {/* TABLE */}
-        <div className="table-wrapper">
-          <div className="table-header">
-            <div
-              className={`cb ${selectedUsers.length === filtered.length && filtered.length > 0 ? 'checked' : ''}`}
-              onClick={toggleSelectAll}
-            >
-              {selectedUsers.length === filtered.length && filtered.length > 0 && <Check size={12} color="#fff" />}
-            </div>
-            <span>Foydalanuvchi</span>
-            <span>Holat / Oxirgi kirish</span>
-            <span>Ro'yxatdan o'tgan</span>
-            <span>Bio</span>
-            <span style={{ textAlign: 'right' }}>Amal</span>
+        {/* CARDS GRID */}
+        {loading ? (
+          <div className="empty-state">
+            <Loader size={32} style={{ animation: 'spin 1s linear infinite', display: 'block', margin: '0 auto 16px' }} />
+            Yuklanmoqda...
           </div>
-
-          {loading ? (
-            <div className="empty-state">
-              <Loader size={32} style={{ animation: 'spin 1s linear infinite', display: 'block', margin: '0 auto 16px' }} />
-              Yuklanmoqda...
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="empty-state">
-              <Inbox size={40} style={{ display: 'block', margin: '0 auto 14px', opacity: 0.3 }} />
-              Foydalanuvchilar topilmadi
-            </div>
-          ) : (
-            filtered.map(user => {
+        ) : filtered.length === 0 ? (
+          <div className="empty-state">
+            <Inbox size={40} style={{ display: 'block', margin: '0 auto 14px', opacity: 0.3 }} />
+            Foydalanuvchilar topilmadi
+          </div>
+        ) : (
+          <div className="users-grid">
+            {filtered.map(user => {
               const status = getActivityStatus(user.last_seen);
               const isSelected = selectedUsers.includes(user.id);
+              
               return (
-                <div key={user.id} className={`user-row ${isSelected ? 'selected' : ''}`}>
+                <div key={user.id} className={`user-card ${isSelected ? 'selected' : ''}`}>
+                  {/* Absolute Checkbox */}
                   <div className={`cb ${isSelected ? 'checked' : ''}`} onClick={() => toggleSelectUser(user.id)}>
-                    {isSelected && <Check size={12} color="#fff" />}
+                    {isSelected && <Check size={14} color="#fff" />}
                   </div>
 
-                  <div className="user-cell">
+                  {/* Header (Avatar + Info) */}
+                  <div className="card-top">
                     <div className="avatar-wrap">
                       <img className="avatar" src={user.avatar_url || DEFAULT_AVATAR} alt="" />
                       <span className={`active-dot ${status.active ? 'online' : 'offline'}`} />
                     </div>
-                    <div>
-                      <div className="user-name">@{user.username}</div>
-                      {user.email && <div className="user-bio">{user.email}</div>}
+                    <div className="user-name">@{user.username}</div>
+                    {user.email && <div className="user-email">{user.email}</div>}
+                  </div>
+
+                  {/* Body (Status, Date, Bio) */}
+                  <div className="card-info">
+                    <span className="status-pill" style={{ color: status.color, borderColor: status.color, background: status.color + '15' }}>
+                      <Circle size={8} fill={status.color} stroke="none" />
+                      {status.label}
+                    </span>
+                    
+                    <div className="join-date">
+                      <Calendar size={13} />
+                      {formatDate(user.created_at)}
+                    </div>
+
+                    <div className="user-bio" title={user.bio}>
+                      {user.bio || <span style={{ opacity: 0.3 }}>— bio mavjud emas —</span>}
                     </div>
                   </div>
 
-                  <div>
-                    <span className="status-pill" style={{ color: status.color, borderColor: status.color, background: status.color + '15' }}>
-                      <Circle size={7} fill={status.color} stroke="none" />
-                      {status.label}
-                    </span>
-                  </div>
-
-                  <div className="join-date">
-                    <Calendar size={12} />
-                    {formatDate(user.created_at)}
-                  </div>
-
-                  <div style={{ fontSize: 12, color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
-                    {user.bio || <span style={{ opacity: 0.3 }}>— bio yo'q —</span>}
-                  </div>
-
-                  <div className="row-actions">
-                    {/* Xabar */}
+                  {/* Actions */}
+                  <div className="card-actions">
                     <button
                       className="icon-btn"
                       title="Xabar yuborish"
                       onClick={() => { setNotifTitle(''); setNotifMessage(''); setNotifType('info'); setNotifModal({ show: true, target: user }); }}
                     >
-                      <MessageSquare size={15} />
+                      <MessageSquare size={14} /> Xabar
                     </button>
-                    {/* O'chirish */}
                     <button
                       className="icon-btn delete-btn"
                       title="O'chirish"
                       onClick={() => setDeleteModal({ show: true, target: user })}
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={14} /> O'chirish
                     </button>
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
 
         {!loading && filtered.length > 0 && (
-          <div style={{ textAlign: 'right', marginTop: 14, fontSize: 12, color: '#444', fontFamily: 'Courier New, monospace' }}>
+          <div style={{ textAlign: 'right', marginTop: 20, fontSize: 13, color: '#666', fontFamily: 'Courier New, monospace' }}>
             {filtered.length} / {users.length} foydalanuvchi ko'rsatilmoqda
           </div>
         )}

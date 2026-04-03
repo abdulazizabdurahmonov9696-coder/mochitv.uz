@@ -3,8 +3,8 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/": "pages/index.js",
+  "/admin/admin": "pages/admin/admin.js",
+  "/admin/episodes": "pages/admin/episodes.js",
   "/404": "pages/404.js",
-  "/admin/users": "pages/admin/users.js",
-  "/anime/[slug]": "pages/anime/[slug].js",
-  "/profile/[username]": "pages/profile/[username].js"
+  "/admin/users": "pages/admin/users.js"
 }
