@@ -208,7 +208,7 @@ function AuthModal({ mode, onClose, onLogin, onRegister, onTelegramOpen, loading
       <div className="auth-box" onClick={e => e.stopPropagation()}>
         <button className="auth-box-close" onClick={onClose}><X size={18} /></button>
         <div className="auth-box-head">
-          <div className="auth-brand-dot"></div>
+          <div className="auth-brand-dot"><FaUserLarge /></div>
           <h2 className="auth-box-title">{currentMode === 'login' ? 'Xush kelibsiz' : "Ro'yxatdan o'tish"}</h2>
           <p className="auth-box-sub">{currentMode === 'login' ? 'Akkauntingizga kiring' : 'Yangi akkount yarating'}</p>
         </div>
@@ -1079,6 +1079,7 @@ export default function Home() {
         .auth-box-head { text-align: center; margin-bottom: 24px; }
         .auth-brand-dot {
           width: 40px; height: 40px; border-radius: 12px;
+          align-items: center; justify-content: center; display: flex;
           background: linear-gradient(135deg, var(--accent), #dc2626);
           margin: 0 auto 14px; box-shadow: 0 8px 24px var(--accent-glow);
         }
