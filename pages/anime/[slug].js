@@ -44,6 +44,7 @@ export default function AnimeDetail() {
   const [randomAnimes, setRandomAnimes] = useState([]);
 
   const dpRef = useRef(null);
+  const hlsRef = useRef(null); // HLS jarayonini tozalash uchun yangi ref
   const videoContainerRef = useRef(null);
 
   const tokenCacheRef = useRef(new Map());
@@ -147,6 +148,14 @@ export default function AnimeDetail() {
   };
 
   const destroyPlayer = () => {
+    if (hlsRef.current) {
+      try {
+        hlsRef.current.destroy();
+      } catch (e) {
+        console.error('HLS cleanup:', e);
+      }
+      hlsRef.current = null;
+    }
     if (dpRef.current) {
       try {
         dpRef.current.pause?.();
@@ -164,7 +173,8 @@ export default function AnimeDetail() {
   const getVideoType = (url) => {
     if (!url) return 'auto';
     const u = String(url).toLowerCase();
-    if (u.includes('.m3u8')) return 'customHls';
+    // Blob linklari ham HLS sifatida o'qilishi uchun shart qo'shildi
+    if (u.includes('.m3u8') || u.startsWith('blob:')) return 'customHls';
     return 'auto';
   };
 
@@ -207,21 +217,28 @@ export default function AnimeDetail() {
                   capLevelToPlayerSize: true,
                 });
 
+                hlsRef.current = hls; // Ref ga saqlash
+
                 hls.loadSource(url);
                 hls.attachMedia(video);
 
+                // HLS xatoliklarini aqlli boshqarish (Load Error oldini oladi)
                 hls.on(window.Hls.Events.ERROR, (event, data) => {
                   if (data?.fatal) {
-                    try {
-                      hls.destroy();
-                    } catch (_) {}
+                    switch (data.type) {
+                      case window.Hls.ErrorTypes.NETWORK_ERROR:
+                        hls.startLoad();
+                        break;
+                      case window.Hls.ErrorTypes.MEDIA_ERROR:
+                        hls.recoverMediaError();
+                        break;
+                      default:
+                        try {
+                          hls.destroy();
+                        } catch (_) {}
+                        break;
+                    }
                   }
-                });
-
-                dp.on('destroy', () => {
-                  try {
-                    hls.destroy();
-                  } catch (_) {}
                 });
               } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = url;
@@ -267,33 +284,81 @@ export default function AnimeDetail() {
     }
   };
 
-const getVideoToken = async (rawUrl) => {
-  try {
-    if (!rawUrl) return null;
+  // Asl video linkini yashirish va BLOB formatiga o'tkazish funksiyasi
+  const getProtectedBlobUrl = async (rawUrl) => {
+    try {
+      if (!rawUrl || !rawUrl.includes('.m3u8')) return rawUrl;
 
-    // Cache tekshirish
-    const cached = tokenCacheRef.current.get(rawUrl);
-    if (cached && cached.expiresAt > Date.now()) {
-      return cached.workerUrl;
-    }
+      const response = await fetch(rawUrl);
+      if (!response.ok) return rawUrl;
+      const text = await response.text();
 
-    // ✅ To'liq original URL ni yuboramiz — API o'zi hal qiladi
-    const response = await fetch(`/api/get-video?file=${encodeURIComponent(rawUrl)}`);
-    const data = await response.json();
+      const baseUrl = rawUrl.substring(0, rawUrl.lastIndexOf('/') + 1);
+      const urlObj = new URL(rawUrl);
 
-    if (data?.url) {
-      tokenCacheRef.current.set(rawUrl, {
-        workerUrl: data.url,
-        expiresAt: Date.now() + 175 * 60 * 1000,
+      const lines = text.split('\n');
+      const rewritten = lines.map(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('http')) {
+          if (trimmed.startsWith('/')) {
+            return urlObj.origin + trimmed;
+          } else {
+            return baseUrl + trimmed;
+          }
+        }
+        if (trimmed.startsWith('#') && trimmed.includes('URI="')) {
+          return trimmed.replace(/URI="([^"]+)"/g, (match, p1) => {
+            if (!p1.startsWith('http')) {
+              if (p1.startsWith('/')) {
+                return `URI="${urlObj.origin}${p1}"`;
+              } else {
+                return `URI="${baseUrl}${p1}"`;
+              }
+            }
+            return match;
+          });
+        }
+        return line;
       });
-      return data.url;
+
+      const blob = new Blob([rewritten.join('\n')], { type: 'application/vnd.apple.mpegurl' });
+      return URL.createObjectURL(blob);
+    } catch (e) {
+      console.error('Blob protection error:', e);
+      return rawUrl;
     }
-    return null;
-  } catch (error) {
-    console.error('Token error:', error);
-    return null;
-  }
-};
+  };
+
+  const getVideoToken = async (rawUrl) => {
+    try {
+      if (!rawUrl) return null;
+
+      // Cache tekshirish
+      const cached = tokenCacheRef.current.get(rawUrl);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.workerUrl;
+      }
+
+      // ✅ To'liq original URL ni yuboramiz — API o'zi hal qiladi
+      const response = await fetch(`/api/get-video?file=${encodeURIComponent(rawUrl)}`);
+      const data = await response.json();
+
+      if (data?.url) {
+        // Blob orqali himoyalash jarayoni
+        const protectedUrl = await getProtectedBlobUrl(data.url);
+
+        tokenCacheRef.current.set(rawUrl, {
+          workerUrl: protectedUrl,
+          expiresAt: Date.now() + 175 * 60 * 1000,
+        });
+        return protectedUrl;
+      }
+      return null;
+    } catch (error) {
+      console.error('Token error:', error);
+      return null;
+    }
+  };
 
   const prefetchNextEpisodes = async (currentEpNum, list) => {
     try {
@@ -456,6 +521,7 @@ const getVideoToken = async (rawUrl) => {
       destroyPlayer();
       setCurrentEpisode(episode.episode_number);
       setVideoUrl('');
+      activeVideoRef.current = '';
 
       if (episode.video_url) {
         const workerUrl = await getVideoToken(episode.video_url);
