@@ -220,7 +220,7 @@ function AuthModal({ mode, onClose, onLogin, onRegister, onTelegramOpen, loading
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="field-group">
             <label className="field-label">Username</label>
-            <input type="text" maxLength={10} className="field-input" placeholder="Username kiriting"
+            <input type="text" maxLength={16} className="field-input" placeholder="Username kiriting"
               value={username} onChange={e => setUsername(e.target.value)} required disabled={loading} />
           </div>
           <div className="field-group">
