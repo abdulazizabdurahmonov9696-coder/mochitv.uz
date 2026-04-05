@@ -44,7 +44,7 @@ export default function AnimeDetail() {
   const [randomAnimes, setRandomAnimes] = useState([]);
 
   const dpRef = useRef(null);
-  const hlsRef = useRef(null); // HLS jarayonini tozalash uchun yangi ref
+  const hlsRef = useRef(null);
   const videoContainerRef = useRef(null);
 
   const tokenCacheRef = useRef(new Map());
@@ -170,14 +170,6 @@ export default function AnimeDetail() {
     }
   };
 
-  const getVideoType = (url) => {
-    if (!url) return 'auto';
-    const u = String(url).toLowerCase();
-    // Blob linklari ham HLS sifatida o'qilishi uchun shart qo'shildi
-    if (u.includes('.m3u8') || u.startsWith('blob:')) return 'customHls';
-    return 'auto';
-  };
-
   const initializePlayer = () => {
     destroyPlayer();
 
@@ -187,8 +179,11 @@ export default function AnimeDetail() {
     }
 
     try {
-      const url = videoUrl;
-      activeVideoRef.current = url;
+      const actualUrl = videoUrl;
+      activeVideoRef.current = actualUrl;
+
+      // Element tekshirilganda ko'rinadigan yashirin SOXTA (Dummy) Blob link yaratamiz
+      const dummyBlobUrl = URL.createObjectURL(new Blob([''], { type: 'video/mp4' }));
 
       const dp = new window.DPlayer({
         container: videoContainerRef.current,
@@ -200,8 +195,8 @@ export default function AnimeDetail() {
         autoplay: false,
         mutex: true,
         video: {
-          url,
-          type: getVideoType(url),
+          url: dummyBlobUrl, // DOM'da videoning `src` atributi qismiga faqat shunday soxta blob yoziladi
+          type: 'customHls', // Formatni o'zimiz majburan belgilaymiz
           customType: {
             customHls: (video) => {
               if (window.Hls && window.Hls.isSupported()) {
@@ -217,12 +212,12 @@ export default function AnimeDetail() {
                   capLevelToPlayerSize: true,
                 });
 
-                hlsRef.current = hls; // Ref ga saqlash
+                hlsRef.current = hls;
 
-                hls.loadSource(url);
+                // Haqiqiy link bu yerda o'qiladi. Bu jarayon dom elementiga chiqmaydi!
+                hls.loadSource(actualUrl);
                 hls.attachMedia(video);
 
-                // HLS xatoliklarini aqlli boshqarish (Load Error oldini oladi)
                 hls.on(window.Hls.Events.ERROR, (event, data) => {
                   if (data?.fatal) {
                     switch (data.type) {
@@ -241,9 +236,11 @@ export default function AnimeDetail() {
                   }
                 });
               } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = url;
+                // Safari kabi Apple qurilmalari uchun to'g'ridan-to'g'ri beriladi
+                // getProtectedBlobUrl orqali u ham allaqachon blob qilingan bo'ladi
+                video.src = actualUrl;
               } else {
-                video.src = url;
+                video.src = actualUrl;
               }
             },
           },
@@ -251,6 +248,13 @@ export default function AnimeDetail() {
       });
 
       dpRef.current = dp;
+
+      // Xotirani tozalash uchun
+      dp.on('destroy', () => {
+        try {
+          URL.revokeObjectURL(dummyBlobUrl);
+        } catch (_) {}
+      });
 
       dp.on('loadedmetadata', () => {
         try {
@@ -260,7 +264,7 @@ export default function AnimeDetail() {
       });
 
       dp.on('canplay', () => {
-        if (activeVideoRef.current !== url) {
+        if (activeVideoRef.current !== actualUrl) {
           try {
             dp.pause();
           } catch (_) {}
@@ -284,7 +288,7 @@ export default function AnimeDetail() {
     }
   };
 
-  // Asl video linkini yashirish va BLOB formatiga o'tkazish funksiyasi
+  // Asl video linkini yashirish va server javobini maxsus BLOB formatiga o'tkazish
   const getProtectedBlobUrl = async (rawUrl) => {
     try {
       if (!rawUrl || !rawUrl.includes('.m3u8')) return rawUrl;
@@ -324,7 +328,6 @@ export default function AnimeDetail() {
       const blob = new Blob([rewritten.join('\n')], { type: 'application/vnd.apple.mpegurl' });
       return URL.createObjectURL(blob);
     } catch (e) {
-      console.error('Blob protection error:', e);
       return rawUrl;
     }
   };
@@ -333,18 +336,15 @@ export default function AnimeDetail() {
     try {
       if (!rawUrl) return null;
 
-      // Cache tekshirish
       const cached = tokenCacheRef.current.get(rawUrl);
       if (cached && cached.expiresAt > Date.now()) {
         return cached.workerUrl;
       }
 
-      // ✅ To'liq original URL ni yuboramiz — API o'zi hal qiladi
       const response = await fetch(`/api/get-video?file=${encodeURIComponent(rawUrl)}`);
       const data = await response.json();
 
       if (data?.url) {
-        // Blob orqali himoyalash jarayoni
         const protectedUrl = await getProtectedBlobUrl(data.url);
 
         tokenCacheRef.current.set(rawUrl, {
