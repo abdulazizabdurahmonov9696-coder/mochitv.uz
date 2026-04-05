@@ -6,6 +6,7 @@ import { IoBookmarkOutline, IoBookmark } from "react-icons/io5";
 import { LuInstagram } from "react-icons/lu";
 import { CgProfile } from "react-icons/cg";
 import { AiFillFire } from "react-icons/ai";
+import { FaUserLarge } from "react-icons/fa6";
 import Head from "next/head";
 import { createClient } from '@supabase/supabase-js';
 import MobileNavbar from '../components/MobileNavbar';
